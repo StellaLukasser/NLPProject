@@ -7,6 +7,8 @@ from keras.src.utils import to_categorical
 import numpy as np
 import tensorflow as tf
 
+from evaluation_metrics import bleu
+
 replacement_map = {"-": " ",
                    "—": " ",
                    "!": "",
@@ -33,6 +35,15 @@ def remove_punctuations(raw):
         processed = ''.join((x for x in processed if not x.isdigit()))
     return processed
 
+
+def read_file(filename):
+    text = []
+    with open(filename, "r", encoding="UTF8") as f:
+        for line in f:
+            if len(line) > 1:
+                line = line.split(" ", maxsplit=1)[1]
+                text.append(line)
+    return text
 
 def read_and_process_file(filename):
     text = []
@@ -127,9 +138,10 @@ def generate_text():
             tf.keras.layers.Dense(vocab_size, activation="softmax")
         ])
         epochs = 50
+        batch_size = 128
 
-        model.compile(loss="categorical_crossentropy", optimizer="adam")
-        model.fit(X, y, epochs=epochs)
+        model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+        model.fit(X, y, batch_size=batch_size, epochs=epochs)
         model.save(path_models + "/simple_rnn.keras")
         print("Saved model")
 
@@ -150,6 +162,14 @@ def generate_text():
     with open(filename, "w", encoding="UTF8") as f:
         f.write(generated_text)
     print(generated_text)
+
+
+def eval_task1():
+    reference = []
+    generated_text= []
+    reference = read_file("data/data_stage_1.txt")
+    generated_text = read_file(path_results + "/group24_stage1_generation")
+    print(bleu(reference, generated_text))
 
 
 def task1():
