@@ -1,0 +1,6 @@
+numpy~=1.24.2
+tensorflow~=2.14.0
+progress~=1.6
+keras~=2.14.0
+evaluate~=0.4.2
+nltk~=3.8.1

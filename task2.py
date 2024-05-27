@@ -2,13 +2,15 @@
 
 import os
 import re
+from datetime import datetime
+
 import numpy as np
 import tensorflow as tf
 from keras.src.saving.saving_api import load_model
 from tensorflow.python import keras
 from keras.preprocessing.text import Tokenizer
 
-from evaluation_metrics import bleu, bleu_corpus
+from evaluation_metrics import bleu_score_, rouge_score_
 
 path = os.curdir + "/data"
 path_models = os.curdir + "/models/task2"
@@ -87,8 +89,6 @@ def text_process(text, seed, num_chars, model_name):
         # Pad the examples
         X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=max_len, padding='post')
 
-        # Convert labels to categorical format
-        #y = tf.keras.utils.to_categorical(y)
         y = y.reshape(y.shape[0], 1)
 
         # Define the model architecture
@@ -131,7 +131,6 @@ def text_process(text, seed, num_chars, model_name):
     punctuations = ['!', ',', '.', ';', '?']
     for punctuation in punctuations:
         generated_text = generated_text.replace(" " + punctuation, punctuation)
-    #generated_text = generated_text.replace(".", ".\n")
     return generated_text
 
 
@@ -144,49 +143,78 @@ def create_directories():
         os.mkdir(path_results)
 
 
-def read_file_eval(filename):
-    text = []
-    with open(filename, "r", encoding="UTF8") as f:
-        for line in f:
-            if len(line) > 1:
-                line = line.split(" ", maxsplit=1)[1]
-                text.append(line)
-    return text
+def prep_file_eval(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl):
+    text_kogler = ' '.join(text_kogler)
+    text_kickl = ' '.join(text_kickl)
+
+    text_kogler = text_kogler.replace(" ,", "")
+    text_kickl = text_kickl.replace(" ,", "")
+    punctuations = ['!', '.', ';', '?']
+    for punctuation in punctuations:
+        text_kogler = text_kogler.replace(" " + punctuation + " ", "\n")
+        text_kickl = text_kickl.replace(" " + punctuation + " ", "\n")
+
+    text_kogler = [i.split(" ") for i in text_kogler.split("\n")]
+    text_kickl = [i.split(" ") for i in text_kickl.split("\n")]
+
+    generated_text_kogler = generated_text_kogler.replace(",", "")
+    generated_text_kickl = generated_text_kickl.replace(",", "")
+    punctuations = ['!', '.', ';', '?']
+    for punctuation in punctuations:
+        generated_text_kogler = generated_text_kogler.replace(punctuation + " ", "\n")
+        generated_text_kickl = generated_text_kickl.replace(punctuation + " ", "\n")
+
+    generated_text_kogler = [i.split(" ") for i in generated_text_kogler.split("\n")]
+    generated_text_kickl = [i.split(" ") for i in generated_text_kickl.split("\n")]
+
+    return text_kogler, text_kickl, generated_text_kogler, generated_text_kickl
 
 
-def eval_task2():
-    reference = read_file_eval(path + "/data_stage_2/data_stage2_2_kickl_mod.txt")
-    generated_text = read_file_eval(path_results + "/group24_stage2_generation2.txt")
-    print(bleu(reference, generated_text, (0.25, 0.25, 0.25, 0.25)))
-    print(bleu(reference, generated_text, (0.5, 0.5, 0, 0)))
-    print(bleu(reference, generated_text, (0.5, 0.25, 0.25, 0)))
-    reference = read_file_eval(path + "/data_stage_2/data_stage2_1_kogler_mod.txt")
-    generated_text = read_file_eval(path_results + "/group24_stage2_generation1.txt")
-    print(bleu(reference, generated_text, (0.25, 0.25, 0.25, 0.25)))
-    print(bleu(reference, generated_text, (0.5, 0.5, 0, 0)))
-    print(bleu(reference, generated_text, (0.5, 0.25, 0.25, 0)))
+
+def eval_task2(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl):
 
 
-def generate_text(text_kickl, text_kogler):
-    generated_text = text_process(text_kickl, text_kickl[len(text_kickl) - 24:], 290, 'kickl_rnn128_100_epochs_batchsize_64_dropout_20')
+    print(f"Kogler bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(text_kogler, generated_text_kogler, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Kogler bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(text_kogler, generated_text_kogler, (0.5, 0.5, 0, 0))}")
+    print(f"Kogler bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(text_kogler, generated_text_kogler, (0.5, 0.25, 0.25, 0))}")
+
+    print(f"Kickl bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(text_kickl, generated_text_kickl, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Kickl bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(text_kickl, generated_text_kickl, (0.5, 0.5, 0, 0))}")
+    print(f"Kickl bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(text_kickl, generated_text_kickl, (0.5, 0.25, 0.25, 0))}")
+
+    text_kogler = [' '.join(sentence) for sentence in text_kogler]
+    generated_text_kogler = [' '.join(sentence) for sentence in generated_text_kogler]
+    text_kickl = [' '.join(sentence) for sentence in text_kickl]
+    generated_text_kickl = [' '.join(sentence) for sentence in generated_text_kickl]
+
+    print(f"Kogler ROUGE score: {rouge_score_(text_kogler, generated_text_kogler)}")
+    print(f"Kickl ROUGE score: {rouge_score_(text_kickl, generated_text_kickl)}")
+
+
+def generate_text(text_kickl, text_kogler, model_name):
+    generated_text = text_process(text_kickl, text_kickl[len(text_kickl) - 24:], 290, 'kickl_' + model_name)
     print(generated_text)
-    text_kickl = ' '.join(text_kickl) + "."
+    text_kickl = ' '.join(text_kickl)
+    if text_kickl[-1] != ".":
+        text_kickl += "."
     punctuations = ['!', ',', '.', ';', '?']
     for punctuation in punctuations:
         text_kickl = text_kickl.replace(" " + punctuation, punctuation)
     print(text_kickl)
-    filename = path_results + "/group24_stage2_generation2.txt"
+    filename = path_results + "/group24_stage2_generation2" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
     with open(filename, "w", encoding="UTF8") as f:
         f.write(generated_text)
 
-    generated_text = text_process(text_kogler, text_kogler[len(text_kogler) - 24:], 290, 'kogler_rnn128_100_epochs_batchsize_64_dropout_20')
+    generated_text = text_process(text_kogler, text_kogler[len(text_kogler) - 24:], 290, 'kogler_' + model_name)
     print(generated_text)
-    text_kogler = ' '.join(text_kogler) + "."
+    text_kogler = ' '.join(text_kogler)
+    if text_kogler[-1] != ".":
+        text_kogler += "."
     punctuations = ['!', ',', '.', ';', '?']
     for punctuation in punctuations:
         text_kogler = text_kogler.replace(" " + punctuation, punctuation)
     print(text_kogler)
-    filename = path_results + "/group24_stage2_generation1.txt"
+    filename = path_results + "/group24_stage2_generation1" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
     with open(filename, "w", encoding="UTF8") as f:
         f.write(generated_text)
 
@@ -197,29 +225,17 @@ def main():
     text_kogler = read_file(file1_kogler)
     text_kickl = read_file(file2_kickl)
     #process data
-
     text_kogler = pre_processing(text_kogler)
     text_kickl = pre_processing(text_kickl)
 
     # Generate text
-    generate_text(text_kickl, text_kogler)
-    #eval_task2()
+    #generate_text(text_kickl, text_kogler, model_name='rnn128_100_epochs_batchsize_64_dropout_20')
 
-    # #sequences
-    # sequence_length = 30
-    # seq_kogler = split_text_into_sequences(text_kogler, sequence_length + 1)
-    # seq_kickl = split_text_into_sequences(text_kickl, sequence_length + 1)
-    # #print(seq_kogler[:10])
-    # #print(seq_kickl[:10])
-
-    # tokenizer = Tokenizer()
-    # tokenizer.fit_on_texts(seq_kogler)
-
-    # # tokenize sequences
-    # sequences_tokenized_kogler = tokenizer.texts_to_sequences(seq_kogler)
-    # print(sequences_tokenized_kogler[:10])
-    # sequences_tokenized_kickl = tokenizer.texts_to_sequences(seq_kickl)
-    # print(sequences_tokenized_kickl[:10])
+    # Evaluate text
+    generated_text_kogler = read_file(path_results + "/testsystem_1805/group24_stage2_generation1.txt")
+    generated_text_kickl = read_file(path_results + "/testsystem_1805/group24_stage2_generation2.txt")
+    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl)
+    eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
 
 if __name__ == '__main__':
     main()
