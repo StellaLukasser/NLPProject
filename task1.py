@@ -6,7 +6,7 @@ from keras.src.saving.saving_api import load_model
 from keras.src.utils import to_categorical
 import numpy as np
 import tensorflow as tf
-from evaluation_metrics import bleu_score_
+from evaluation_metrics import bleu_score_, rouge_score_
 
 replacement_map = {"-": " ",
                    "—": " ",
@@ -98,6 +98,10 @@ def eval_task1(gen_file):
     print(f"Bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(reference, generated_text, (0.25, 0.25, 0.25, 0.25))}")
     print(f"Bleu score (0.05, 0.05, 0.00, 0.00): {bleu_score_(reference, generated_text, (0.5, 0.5, 0, 0))}")
     print(f"Bleu score (0.05, 0.25, 0.25, 0.00): {bleu_score_(reference, generated_text, (0.5, 0.25, 0.25, 0))}")
+
+    reference = [' '.join(sentence) for sentence in reference]
+    generated_text = [' '.join(sentence) for sentence in generated_text]
+    print(f"ROUGE score: {rouge_score_(reference, generated_text)}")
 
 
 def insert_punctuations(gen_file_path, gen_file_path_with_punc):
