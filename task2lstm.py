@@ -10,7 +10,7 @@ from tensorflow.keras.layers import Embedding, LSTM, Dropout, Dense
 path = os.curdir + "/data"
 file1_kogler = path + "/data_stage_2/data_stage2_1_kogler.txt"
 file2_kickl = path + "/data_stage_2/data_stage2_2_kickl.txt"
-path_results = os.curdir + "/results"
+path_results = os.curdir + "/results/task2"
 path_models = os.curdir + "/models/task2"
 
 

@@ -7,8 +7,6 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 from keras.src.saving.saving_api import load_model
-from tensorflow.python import keras
-from keras.preprocessing.text import Tokenizer
 
 from evaluation_metrics import bleu_score_, rouge_score_
 
@@ -60,16 +58,13 @@ def split_text_into_sequences(text, length):
 def text_process(text, seed, num_chars, model_name):
     # The unique characters in the file
     vocab = sorted(set(text))
-    #print(f'{len(vocab)} unique characters')
-    #print(vocab)
 
-    #convert strings to numerical representation
+    # Convert strings to numerical representation
     char_to_int = {ch:i for i, ch in enumerate(vocab)}
     int_to_char = {i:ch for i, ch in enumerate(vocab)}
 
     # Set the maximum sequence length (max_len) to be the length of the longest sequence
     max_len = max([len(s) for s in text])
-    print(max_len)
 
     path_model = path_models + "/" + model_name + ".keras"
     if os.path.exists(path_model):
@@ -102,7 +97,7 @@ def text_process(text, seed, num_chars, model_name):
         model.compile(optimizer='adam', loss=loss1)
 
         # Train the model
-        model.fit(X, y, epochs=80, batch_size=64)
+        model.fit(X, y, epochs=100, batch_size=64)
         model.save(path_model)
         print("Saved model")
 
@@ -127,7 +122,10 @@ def text_process(text, seed, num_chars, model_name):
         padded_seed = np.append(padded_seed[0][1:], index)
         padded_seed = tf.keras.preprocessing.sequence.pad_sequences([padded_seed], maxlen=max_len, padding='post')
 
+    # join text and add dot at the end
     generated_text = ' '.join(generated_text[25:]) + "."
+
+    # remove space before punctuations
     punctuations = ['!', ',', '.', ';', '?']
     for punctuation in punctuations:
         generated_text = generated_text.replace(" " + punctuation, punctuation)
@@ -141,54 +139,6 @@ def create_directories():
         os.mkdir(path_models)
     if not os.path.exists(path_results):
         os.mkdir(path_results)
-
-
-def prep_file_eval(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl):
-    text_kogler = ' '.join(text_kogler)
-    text_kickl = ' '.join(text_kickl)
-
-    text_kogler = text_kogler.replace(" ,", "")
-    text_kickl = text_kickl.replace(" ,", "")
-    punctuations = ['!', '.', ';', '?']
-    for punctuation in punctuations:
-        text_kogler = text_kogler.replace(" " + punctuation + " ", "\n")
-        text_kickl = text_kickl.replace(" " + punctuation + " ", "\n")
-
-    text_kogler = [i.split(" ") for i in text_kogler.split("\n")]
-    text_kickl = [i.split(" ") for i in text_kickl.split("\n")]
-
-    generated_text_kogler = generated_text_kogler.replace(",", "")
-    generated_text_kickl = generated_text_kickl.replace(",", "")
-    punctuations = ['!', '.', ';', '?']
-    for punctuation in punctuations:
-        generated_text_kogler = generated_text_kogler.replace(punctuation + " ", "\n")
-        generated_text_kickl = generated_text_kickl.replace(punctuation + " ", "\n")
-
-    generated_text_kogler = [i.split(" ") for i in generated_text_kogler.split("\n")]
-    generated_text_kickl = [i.split(" ") for i in generated_text_kickl.split("\n")]
-
-    return text_kogler, text_kickl, generated_text_kogler, generated_text_kickl
-
-
-
-def eval_task2(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl):
-
-
-    print(f"Kogler bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(text_kogler, generated_text_kogler, (0.25, 0.25, 0.25, 0.25))}")
-    print(f"Kogler bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(text_kogler, generated_text_kogler, (0.5, 0.5, 0, 0))}")
-    print(f"Kogler bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(text_kogler, generated_text_kogler, (0.5, 0.25, 0.25, 0))}")
-
-    print(f"Kickl bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(text_kickl, generated_text_kickl, (0.25, 0.25, 0.25, 0.25))}")
-    print(f"Kickl bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(text_kickl, generated_text_kickl, (0.5, 0.5, 0, 0))}")
-    print(f"Kickl bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(text_kickl, generated_text_kickl, (0.5, 0.25, 0.25, 0))}")
-
-    text_kogler = [' '.join(sentence) for sentence in text_kogler]
-    generated_text_kogler = [' '.join(sentence) for sentence in generated_text_kogler]
-    text_kickl = [' '.join(sentence) for sentence in text_kickl]
-    generated_text_kickl = [' '.join(sentence) for sentence in generated_text_kickl]
-
-    print(f"Kogler ROUGE score: {rouge_score_(text_kogler, generated_text_kogler)}")
-    print(f"Kickl ROUGE score: {rouge_score_(text_kickl, generated_text_kickl)}")
 
 
 def generate_text(text_kickl, text_kogler, model_name):
@@ -219,6 +169,51 @@ def generate_text(text_kickl, text_kogler, model_name):
         f.write(generated_text)
 
 
+def prep_file_eval(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl):
+    text_kogler = ' '.join(text_kogler)
+    text_kickl = ' '.join(text_kickl)
+
+    text_kogler = text_kogler.replace(" ,", "")
+    text_kickl = text_kickl.replace(" ,", "")
+    punctuations = ['!', '.', ';', '?']
+    for punctuation in punctuations:
+        text_kogler = text_kogler.replace(" " + punctuation + " ", "\n")
+        text_kickl = text_kickl.replace(" " + punctuation + " ", "\n")
+
+    text_kogler = [i.split(" ") for i in text_kogler.split("\n")]
+    text_kickl = [i.split(" ") for i in text_kickl.split("\n")]
+
+    generated_text_kogler = generated_text_kogler.replace(",", "")
+    generated_text_kickl = generated_text_kickl.replace(",", "")
+    punctuations = ['!', '.', ';', '?']
+    for punctuation in punctuations:
+        generated_text_kogler = generated_text_kogler.replace(punctuation + " ", "\n")
+        generated_text_kickl = generated_text_kickl.replace(punctuation + " ", "\n")
+
+    generated_text_kogler = [i.split(" ") for i in generated_text_kogler.split("\n")]
+    generated_text_kickl = [i.split(" ") for i in generated_text_kickl.split("\n")]
+
+    return text_kogler, text_kickl, generated_text_kogler, generated_text_kickl
+
+
+def eval_task2(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl):
+    print(f"Kogler bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(text_kogler, generated_text_kogler, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Kogler bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(text_kogler, generated_text_kogler, (0.5, 0.5, 0, 0))}")
+    print(f"Kogler bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(text_kogler, generated_text_kogler, (0.5, 0.25, 0.25, 0))}")
+
+    print(f"Kickl bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(text_kickl, generated_text_kickl, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Kickl bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(text_kickl, generated_text_kickl, (0.5, 0.5, 0, 0))}")
+    print(f"Kickl bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(text_kickl, generated_text_kickl, (0.5, 0.25, 0.25, 0))}")
+
+    text_kogler = [' '.join(sentence) for sentence in text_kogler]
+    generated_text_kogler = [' '.join(sentence) for sentence in generated_text_kogler]
+    text_kickl = [' '.join(sentence) for sentence in text_kickl]
+    generated_text_kickl = [' '.join(sentence) for sentence in generated_text_kickl]
+
+    print(f"Kogler ROUGE score: {rouge_score_(text_kogler, generated_text_kogler)}")
+    print(f"Kickl ROUGE score: {rouge_score_(text_kickl, generated_text_kickl)}")
+
+
 def main():
     create_directories()
     #read text
@@ -232,10 +227,30 @@ def main():
     #generate_text(text_kickl, text_kogler, model_name='rnn128_100_epochs_batchsize_64_dropout_20')
 
     # Evaluate text
+    # RNN
     generated_text_kogler = read_file(path_results + "/testsystem_1805/group24_stage2_generation1.txt")
     generated_text_kickl = read_file(path_results + "/testsystem_1805/group24_stage2_generation2.txt")
-    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl, generated_text_kogler, generated_text_kickl)
+    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                        generated_text_kogler,
+                                                                                        generated_text_kickl)
     eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+
+    # Markov advanced
+    generated_text_kogler = read_file(os.curdir + "/results/markov_adv_kogler_maxseq20.txt")
+    generated_text_kickl = read_file(os.curdir + "/results/markov_adv_kickl_maxseq20.txt")
+    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                        generated_text_kogler,
+                                                                                        generated_text_kickl)
+    eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+
+    # LSTM with temperature
+    generated_text_kogler = read_file(os.curdir + "/results/lstm_kogler_temp1.0_100epochs.txt")
+    generated_text_kickl = read_file(os.curdir + "/results/lstm_kickl_temp1.0_100epochs.txt")
+    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                        generated_text_kogler,
+                                                                                        generated_text_kickl)
+    eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+
 
 if __name__ == '__main__':
     main()
