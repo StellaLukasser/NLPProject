@@ -1,11 +1,12 @@
 import os
+from datetime import datetime
 from progress.bar import Bar
 from keras.src.preprocessing.text import Tokenizer
 from keras.src.saving.saving_api import load_model
 from keras.src.utils import to_categorical
 import numpy as np
 import tensorflow as tf
-from evaluation_metrics import bleu
+from evaluation_metrics import bleu_score_
 
 replacement_map = {"-": " ",
                    "—": " ",
@@ -22,9 +23,8 @@ replacement_map = {"-": " ",
                    "\n": "",
                    '"': "",
                    "'": ""}
-path_models = os.curdir + "/models"
-path_processed_data = os.curdir + "/processed_data"
-path_results = os.curdir + "/results"
+path_models = os.curdir + "/models/task1"
+path_results = os.curdir + "/results/task1"
 
 
 def remove_punctuations(raw):
@@ -35,13 +35,23 @@ def remove_punctuations(raw):
     return processed
 
 
-def read_file(filename):
-    text = []
+def read_ref_file(filename):
+    text = ""
     with open(filename, "r", encoding="UTF8") as f:
         for line in f:
             if len(line) > 1:
+                # remove line numbers (see input file)
                 line = line.split(" ", maxsplit=1)[1]
-                text.append(line)
+                text += line
+    return text
+
+
+def read_file(filename):
+    text = ""
+    with open(filename, "r", encoding="UTF8") as f:
+        for line in f:
+            if len(line) > 1:
+                text += line
     return text
 
 
@@ -67,45 +77,31 @@ def split_text_into_sequences(text, length):
     return sequences
 
 
-def save_sequences_in_txt(sequences, path):
-    with open(path, "w", encoding="UTF8") as f:
-        for sequence in sequences:
-            f.write(sequence + "\n")
+def eval_task1(gen_file):
+    reference = read_ref_file("data/data_stage_1.txt")
+    generated_text = read_file(gen_file)
+
+    reference = reference.replace(" ,", "")
+    punctuations = ['!', '.', ';', '?']
+    for punctuation in punctuations:
+        reference = reference.replace(punctuation + " ", "\n")
+    punctuations = ["-", "—", "(", ")", "]", "]", ":", '"', "'"]
+    for punctuation in punctuations:
+        reference = reference.replace(punctuation, "")
+
+    reference = [i.split(" ") for i in reference.split("\n")]
+
+    generated_text = generated_text.replace(". ", "\n")
+    generated_text = [i.split(" ") for i in generated_text.split("\n")]
+
+    print(f"Evaluation of {gen_file}")
+    print(f"Bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(reference, generated_text, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Bleu score (0.05, 0.05, 0.00, 0.00): {bleu_score_(reference, generated_text, (0.5, 0.5, 0, 0))}")
+    print(f"Bleu score (0.05, 0.25, 0.25, 0.00): {bleu_score_(reference, generated_text, (0.5, 0.25, 0.25, 0))}")
 
 
-def save_single_line_text_in_txt(text, path):
-    with open(path, "w", encoding="UTF8") as f:
-        f.write(" ".join(text))
-
-
-def load_multi_line_text_from_txt(path):
-    sequences = []
-    with open(path, "r") as f:
-        for line in f:
-           sequences.append(line)
-    return sequences
-
-
-def load_single_line_text_from_txt_tokenized(path):
-    with open(path, "r", encoding="UTF8") as f:
-        return f.read().split(" ")
-
-
-def eval_task1():
-    reference = read_file("data/data_stage_1.txt")
-    generated_text = read_file(path_results + "/group24_stage1_generation_model2.txt")
-    print(bleu(reference, generated_text, (0.25, 0.25, 0.25, 0.25)))
-    print(bleu(reference, generated_text, (0.5, 0.5, 0, 0)))
-    print(bleu(reference, generated_text, (0.5, 0.25, 0.25, 0)))
-
-    generated_text = read_file(path_results + "/group24_stage1_generation_model2_with_punc.txt")
-    print(bleu(reference, generated_text, (0.25, 0.25, 0.25, 0.25)))
-    print(bleu(reference, generated_text, (0.5, 0.5, 0, 0)))
-    print(bleu(reference, generated_text, (0.5, 0.25, 0.25, 0)))
-
-
-def insert_punctuations():
-    reference = read_file("data/data_stage_1.txt")
+def insert_punctuations(gen_file_path, gen_file_path_with_punc):
+    reference = read_ref_file("data/data_stage_1.txt")
     # mean and std of how often punctuations appear
     nums = []
     for line in reference:
@@ -121,8 +117,8 @@ def insert_punctuations():
     print(std)
 
     # insert random punctuations
-    generated_text = read_file(path_results + "/group24_stage1_generation_model2.txt")
-    gen = generated_text[0].split(" ")
+    generated_text = read_file(gen_file_path)
+    gen = generated_text.split(" ")
     tmp = [abs(np.random.normal(mean, std))]
     for i in range(1, 2000):
         random_num = max(5, abs(np.random.normal(mean, std)))
@@ -134,45 +130,28 @@ def insert_punctuations():
     gen[len(gen) - 1] += "."
     generated_text = ' '.join(gen)
     print(generated_text)
-    filename = path_results + "/group24_stage1_generation_model2_with_punc.txt"
+    filename = gen_file_path_with_punc
     with open(filename, "w", encoding="UTF8") as f:
         f.write(generated_text)
 
 
 def create_directories():
-    if not os.path.exists(path_processed_data):
-        os.mkdir(path_processed_data)
     if not os.path.exists(path_models):
         os.mkdir(path_models)
     if not os.path.exists(path_results):
         os.mkdir(path_results)
 
 
-def generate_text():
+def generate_text(gen_file_path):
     sequence_length = 30
     num_words_to_generate = 2000
 
     # process data by removing punctuations and tokenizing sentences
-    path_processed_data_task1 = path_processed_data + "/processed_data_task1_model2.txt"
-    if os.path.exists(path_processed_data_task1):  # if this file already exists load it
-        text = load_single_line_text_from_txt_tokenized(path_processed_data_task1)
-        print("Loaded processed text")
-    else:  # otherwise process data
-        print("Process raw text")
-        text = read_and_process_file("data/data_stage_1.txt")
-        save_single_line_text_in_txt(text, path_processed_data_task1)  # save processed data
-        print("Saved processed text")
+    print("Process raw text")
+    text = read_and_process_file("data/data_stage_1.txt")
 
-    # split data into sequences
-    path_sequenced_data_task1 = path_processed_data + "/sequenced_data_task1_model2.txt"
-    if os.path.exists(path_sequenced_data_task1):  # if this file already exists load it
-        sequences = load_multi_line_text_from_txt(path_sequenced_data_task1)
-        print("Loaded sequences")
-    else:  # otherwise sequence data
-        print("Create sequences")
-        sequences = split_text_into_sequences(text, sequence_length + 1)  # +1 for word which should be predicted
-        save_sequences_in_txt(sequences, path_sequenced_data_task1)  # save sequenced data
-        print("Saved sequences")
+    print("Create sequences")
+    sequences = split_text_into_sequences(text, sequence_length + 1)  # +1 for word which should be predicted
 
     # fit tokenizer on sequences
     tokenizer = Tokenizer()
@@ -223,13 +202,25 @@ def generate_text():
             bar.next()
 
     generated_text = ' '.join(generated_text[sequence_length + 1:])
-    filename = path_results + "/group24_stage1_generation_model2.txt"
-    with open(filename, "w", encoding="UTF8") as f:
+    with open(gen_file_path, "w", encoding="UTF8") as f:
         f.write(generated_text)
     print(generated_text)
 
 
-def task1():
+def main():
     create_directories()
-    generate_text()
 
+    #filename = path_results + "/group24_stage1_generation" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
+    #filename_punc = path_results + "/group24_stage1_generation_with_punc" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
+    #generate_text(gen_file_path=filename)
+    #insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
+
+    filename_eval = path_results + "/group24_stage1_generation_with_punc_0528_1036.txt"
+    eval_task1(filename_eval)
+
+    filename_eval = path_results + "/test_system_08_05_model2/group24_stage1_generation.txt"
+    eval_task1(filename_eval)
+
+
+if __name__ == '__main__':
+    main()

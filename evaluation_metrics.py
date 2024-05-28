@@ -1,21 +1,19 @@
 import os
 
 import numpy as np
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 import evaluate
 #!pip install evaluate
 #!pip install rouge-score
-
-
-path_data_task2 = os.curdir + "/data/data_stage_2"
-path_results_task2 = os.curdir + "/results/task2"
 
 rouge = evaluate.load('rouge')
 
 def bleu_score_(ref, gen, weights):
     bleu_scores = []
+    # can play with smoothing function see (https://www.nltk.org/api/nltk.translate.bleu_score.html)
+    cc = SmoothingFunction()
     for sentence in gen:
-        bleu_scores.append(sentence_bleu(ref, sentence, weights=weights))
+        bleu_scores.append(sentence_bleu(ref, sentence, weights=weights, smoothing_function=cc.method4))
 
     return np.array(bleu_scores).mean()
 
