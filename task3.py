@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import re
 
@@ -47,6 +48,10 @@ def main():
 
     tweets_cleaned_musk = tweets_musk.apply(clean_tweet_musk)
     tweets_cleaned_trump = tweets_trump.apply(clean_tweet_trump)
+    tweets_cleaned_musk.replace('', np.nan, inplace=True)
+    tweets_cleaned_trump.replace('', np.nan, inplace=True)
+    tweets_cleaned_musk.dropna(inplace=True)
+    tweets_cleaned_trump.dropna(inplace=True)
 
 
 if __name__ == '__main__':
