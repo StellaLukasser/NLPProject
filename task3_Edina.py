@@ -81,7 +81,7 @@ def preprocessing():
     for c in chars[-78:]:
         tweets_cleaned_trump = tweets_cleaned_trump.str.replace(c,'')
     
-    # Remove tweets longer than 50 chars
+    # Remove tweets shorter than 20 chars
     tweets_cleaned_trump = tweets_cleaned_trump[tweets_cleaned_trump.map(len) > 20]
 
     chars = sorted(list(set(''.join(tweets_cleaned_musk))))
@@ -91,7 +91,7 @@ def preprocessing():
     for c in chars[-116:]:
         tweets_cleaned_musk = tweets_cleaned_musk.str.replace(c,'')
 
-    # Remove tweets longer than 50 chars
+    # Remove tweets shorter than 20 chars
     tweets_cleaned_musk = tweets_cleaned_musk[tweets_cleaned_musk.map(len) > 20]
 
     tweets_cleaned_musk.dropna(inplace=True)
