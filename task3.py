@@ -7,34 +7,32 @@ pd.set_option('display.max_colwidth', 170)
 
 
 def clean_tweet_musk(tweet):
-    tweet = re.sub(r'\n', ' ', tweet)
-    tweet = tweet + "\n"
-    tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet, flags=re.MULTILINE)
-    tweet = re.sub(r'@\w+', '', tweet)
-    tweet = re.sub(r'#\w+', '', tweet)
-
-    tweet = re.sub(r'(\d+(\.|,|K| )*)+\n', ' ', tweet)
-    tweet = re.sub("\w+\.com", " ", tweet)
-    tweet = re.sub("\s+", " ", tweet).strip()
-    tweet = re.sub(r'Replying to (and )*', '', tweet)
+    tweet = re.sub(r'\n', ' ', tweet)                                         # remove line breaks
+    tweet = tweet + "\n"                                                      # add break at the end (helper)
+    tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet, flags=re.MULTILINE) # remove links
+    tweet = re.sub(r'@\w+', '', tweet)                                        # remove taggings
+    tweet = re.sub(r'#\w+', '', tweet)                                        # remove hashtags
+    tweet = re.sub(r'(\d+(\.|,|K| )*)+\n', ' ', tweet)                        # remove numbers at the end of a line
+    tweet = re.sub("\w+\.com", " ", tweet)                                    # remove websites
+    tweet = re.sub("\s+", " ", tweet).strip()                                 # remove unnecessary whitespaces
+    tweet = re.sub(r'Replying to (and )*', '', tweet)                         # remove "Replying to ... (and ...)"
 
     return tweet
 
 
 def clean_tweet_trump(tweet):
-    tweet = re.sub(r'\n', ' ', tweet)
-    tweet = tweet + "\n"
+    tweet = re.sub(r'\n', ' ', tweet)                                         # remove line breaks
+    tweet = tweet + "\n"                                                      # add break at the end (helper)
     tweet = re.sub(r'RT @realDonaldTrump:', '', tweet)
-    tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet, flags=re.MULTILINE)
-    tweet = re.sub(r'@\w+', '', tweet)
-    tweet = re.sub(r'#\w+', '', tweet)
+    tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet, flags=re.MULTILINE) # remove links
+    tweet = re.sub(r'@\w+', '', tweet)                                        # remove taggings
+    tweet = re.sub(r'#\w+', '', tweet)                                        # remove hashtags
+    tweet = re.sub(r'(\d+(\.|,|K| )*)+\n', ' ', tweet)                        # remove numbers at the end of a line
+    tweet = re.sub("\w+\.com", " ", tweet)                                    # remove websites
+    tweet = re.sub("\s+", " ", tweet).strip()                                 # remove unnecessary whitespaces
+    tweet = re.sub(r":", "", tweet)                                           # remove ":"
 
-    tweet = re.sub(r'(\d+(\.|,|K| )*)+\n', ' ', tweet)
-    tweet = re.sub("\w+\.com", " ", tweet)
-    tweet = re.sub("\s+", " ", tweet).strip()
-    #tweet = re.sub(r'RT : *', '', tweet)
-    tweet = re.sub(r":", "", tweet)
-
+    # handle weird twitter export api characters
     tweet = re.sub(r"â€™", "'", tweet)
     tweet = re.sub(r"â€“", "—", tweet)
     tweet = re.sub(r"â€”", "–", tweet)
@@ -45,18 +43,21 @@ def clean_tweet_trump(tweet):
     # &amp => "An ampersand" => and
     tweet = re.sub(r'&amp', 'and', tweet)
 
+    # remove leading dots, commas and whitespaces
     tweet = tweet.lstrip(" .,")
     tweet = tweet.rstrip()
 
     return tweet
 
 def preprocessing():
+    # read data
     df_musk = pd.read_excel('data/data_stage_3/data_stage3_1_musk.xlsx', header=None, engine='openpyxl')
     tweets_musk = df_musk.iloc[:, 0]
 
     df_trump = pd.read_excel('data/data_stage_3/data_stage3_2_trump.xlsx', header=None, engine='openpyxl')
     tweets_trump = df_trump.iloc[:, 0]
 
+    # clean data
     tweets_cleaned_musk = tweets_musk.apply(clean_tweet_musk)
     tweets_cleaned_trump = tweets_trump.apply(clean_tweet_trump)
     tweets_cleaned_musk.replace('', np.nan, inplace=True)
@@ -64,34 +65,40 @@ def preprocessing():
     tweets_cleaned_musk.dropna(inplace=True)
     tweets_cleaned_trump.dropna(inplace=True)
 
-    #clean unnecessary chars from html encoding
+    # ---------TRUMP------------
+    # clean unnecessary chars from html encoding
     chars = sorted(list(set(''.join(tweets_cleaned_trump))))
     char_indices = dict((cd, i) for i, cd in enumerate(chars))
     print("Chars in trump text", char_indices)
 
-    #removing unwanted chars 163-85 trump
+    # by removing unwanted chars 163-85 trump
     for c in chars[-78:]:
         tweets_cleaned_trump = tweets_cleaned_trump.str.replace(c,'')
 
     # Remove tweets shorter than 20 chars
     tweets_cleaned_trump = tweets_cleaned_trump[tweets_cleaned_trump.map(len) > 20]
 
+    # ---------MUSK------------
+    # clean unnecessary chars from html encoding
     chars = sorted(list(set(''.join(tweets_cleaned_musk))))
     char_indices = dict((cd, i) for i, cd in enumerate(chars))
     print("Chars in musk text", char_indices)
 
-    #removing unwanted chars 205-90 trump
+    # by removing unwanted chars 205-90 trump
     for c in chars[-116:]:
         tweets_cleaned_musk = tweets_cleaned_musk.str.replace(c,'')
 
     # Remove tweets shorter than 20 chars
     tweets_cleaned_musk = tweets_cleaned_musk[tweets_cleaned_musk.map(len) > 20]
 
+    # remove now empty lines
     tweets_cleaned_musk.dropna(inplace=True)
     tweets_cleaned_trump.dropna(inplace=True)
 
+    # remove retweets which are not from trump
     tweets_cleaned_trump_filtered = tweets_cleaned_trump[~tweets_cleaned_trump.str.startswith('RT')]
 
+    # save in csv
     tweets_cleaned_trump_filtered.to_csv('tweets_cleaned_trump.csv', index=False, encoding='utf-8')
     tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8')
     return tweets_cleaned_musk, tweets_cleaned_trump
