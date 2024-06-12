@@ -5,3 +5,4 @@ keras~=2.14.0
 evaluate~=0.4.2
 nltk~=3.8.1
 pandas~=2.2.2
+rouge-score
