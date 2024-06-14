@@ -2,8 +2,15 @@ import numpy as np
 import pandas as pd
 import re
 import random
+import keras
+from keras import layers
 
-pd.set_option('display.max_colwidth', 170)
+import numpy as np
+import random
+import io
+import csv
+
+#pd.set_option('display.max_colwidth', 170)
 
 
 def clean_tweet_musk(tweet):
@@ -102,15 +109,24 @@ def preprocessing():
     tweets_cleaned_trump.to_csv('tweets_cleaned_trump.csv', index=False, encoding='utf-8')
     tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8')
     print('yeah')
-    return tweets_cleaned_musk, tweets_cleaned_trump
+    #return tweets_cleaned_musk, tweets_cleaned_trump
     
+
+
+
+def generating_text_trump():
+
+    print("-")
+
+
+
 
 def main():
     #with open('data/data_stage_3/data_stage3_2_trump.xlsx', encoding='utf-8') as f:
     #    df_trump = pd.read_excel(f)
-    preprocessing()
-    #trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
-    #musk = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
+    #preprocessing()
+    generating_text_trump()
+    print('d')
 
 
 
