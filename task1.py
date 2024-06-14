@@ -89,8 +89,10 @@ def eval_task1(gen_file):
     for punctuation in punctuations:
         reference = reference.replace(punctuation, "")
 
+
     reference = [i.split(" ") for i in reference.split("\n")]
 
+    generated_text = generated_text.replace(",", "")
     generated_text = generated_text.replace(". ", "\n")
     generated_text = [i.split(" ") for i in generated_text.split("\n")]
 
@@ -130,8 +132,12 @@ def insert_punctuations(gen_file_path, gen_file_path_with_punc):
         num = tmp[i-1]
         if len(gen) - 1 < num:
             break
-        gen[int(num)] = gen[int(num)] + "."
-    gen[len(gen) - 1] += "."
+        if  np.random.randint(0, 2) == 1:
+            gen[int(num)] = gen[int(num)] + "."
+        else:
+            gen[int(num)] = gen[int(num)] + ","
+    if gen[len(gen) - 1] != ".":
+        gen[len(gen) - 1] += "."
     generated_text = ' '.join(gen)
     print(generated_text)
     filename = gen_file_path_with_punc
@@ -172,7 +178,7 @@ def generate_text(gen_file_path):
     y = to_categorical(y, num_classes=vocab_size)
 
     # load model if exists
-    path = path_models + "/simple_rnn_100_epochs_batchsize_64_dropout_20.keras"
+    path = path_models + "/simple_rnn_100_epochs_batchsize_64.keras"
     if os.path.exists(path):
         model = load_model(path)
         print(f"Loaded model from disc ({path})")
@@ -182,7 +188,6 @@ def generate_text(gen_file_path):
         model = tf.keras.Sequential([
             tf.keras.layers.Embedding(vocab_size, 50, input_length=sequence_length),
             tf.keras.layers.SimpleRNN(128),
-            tf.keras.layers.Dropout(0.2),
             tf.keras.layers.Dense(vocab_size, activation="softmax")
         ])
         epochs = 100
@@ -214,15 +219,21 @@ def generate_text(gen_file_path):
 def main():
     create_directories()
 
-    #filename = path_results + "/group24_stage1_generation" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
-    #filename_punc = path_results + "/group24_stage1_generation_with_punc" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
-    #generate_text(gen_file_path=filename)
-    #insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
+    # filename = path_results + "/group24_stage1_generation" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
+    # filename_punc = path_results + "/group24_stage1_generation_with_punc" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
+    # generate_text(gen_file_path=filename)
+    # insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
 
-    filename_eval = path_results + "/group24_stage1_generation_with_punc_0528_1036.txt"
+    # model 1
+    filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1038.txt"
     eval_task1(filename_eval)
 
-    filename_eval = path_results + "/test_system_08_05_model2/group24_stage1_generation.txt"
+    # model 2
+    filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1028.txt"
+    eval_task1(filename_eval)
+
+    # model 3
+    filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1034.txt"
     eval_task1(filename_eval)
 
 
