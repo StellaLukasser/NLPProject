@@ -2,11 +2,12 @@ import numpy as np
 import os
 import random
 import pandas as pd
-import openpyxl
 import torch
 import re
 from datasets import Dataset
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
+from evaluation_metrics import bleu_score_, rouge_score_
+
 pd.set_option('display.max_colwidth', 170)
 
 #https://armandolivares.tech/2022/09/16/how-to-create-a-tweet-generator-with-gpt-2/
@@ -25,6 +26,7 @@ token_musk_path = path_models + "/token_musk"
 token_trump_path = path_models + "/token_trump"
 output_musk_path = path_models + "/output_musk"
 output_trump_path = path_models + "/output_trump"
+initial_tweet_path = path + "/data_stage_3/initial_tweet_musk.txt"
 
 
 #preprocessing#
@@ -43,6 +45,13 @@ def save_data(data, path):
     with open(path, 'w') as file:
         file.write(data)
 
+def read_file(filename):
+    text = ""
+    with open(filename, "r", encoding="UTF8") as f:
+        for line in f:
+            if len(line) > 1:
+                text += line
+    return text
 
 def clean_tweet_musk(tweet):
     tweet = re.sub(r'\n', ' ', tweet)                                         # remove line breaks
@@ -260,6 +269,7 @@ def test_model(prompt, model, tokenizer):
         top_p=0.95,
         early_stopping=True,
         no_repeat_ngram_size=2,
+        num_beams=10,
         num_return_sequences=10,
         pad_token_id=tokenizer.pad_token_id,
         attention_mask=torch.ones_like(generated)
@@ -274,7 +284,9 @@ def generate_tweet(prompt, model, tokenizer):
     model.to(device)
     model.eval()
 
-    generated = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0)
+    prompt_padded = "<|startoftext|>" + prompt
+
+    generated = torch.tensor(tokenizer.encode(prompt_padded)).unsqueeze(0)
     generated = generated.to(device)
 
     #print(generated)
@@ -285,6 +297,50 @@ def generate_tweet(prompt, model, tokenizer):
         top_k=20,
         max_new_tokens=300,
         top_p=0.95,
+        temperature=0.9,
+        early_stopping=True,
+        no_repeat_ngram_size=2,
+        num_beams=10,
+        num_return_sequences=10,
+        pad_token_id=tokenizer.pad_token_id,
+        attention_mask=torch.ones_like(generated)
+    )
+
+    generated_tweet = None
+
+    for sequence in output:
+        tweet = tokenizer.decode(sequence, skip_special_tokens=True)
+        tweet = tweet[len(prompt):].strip()
+
+        if len(tweet) > 0:
+            generated_tweet = tweet
+            break
+
+    if generated_tweet is None:
+        generated_tweet = generate_tweet(prompt, model, tokenizer)
+
+    return generated_tweet
+
+def style_transfer(prompt, model, tokenizer, style):
+    device = torch.device("cuda")
+
+    model.to(device)
+    model.eval()
+
+    prompt_padded = f"<|startoftext|><{style}>" + prompt
+
+    generated = torch.tensor(tokenizer.encode(prompt_padded)).unsqueeze(0)
+    generated = generated.to(device)
+
+    #print(generated)
+
+    output = model.generate(
+        generated,
+        do_sample=True,
+        top_k=50,
+        max_new_tokens=300,
+        top_p=0.90,
+        temperature=1.2,
         early_stopping=True,
         no_repeat_ngram_size=2,
         num_beams=10,
@@ -294,10 +350,9 @@ def generate_tweet(prompt, model, tokenizer):
     )
 
     generated_tweet = tokenizer.decode(output[0], skip_special_tokens=True)
-    generated_tweet = generated_tweet[len(prompt):]
+    generated_tweet = generated_tweet[len(prompt):].strip()
 
     return generated_tweet
-
 
 def discuss(text1, text2, n=5):
 
@@ -386,7 +441,63 @@ def discuss(text1, text2, n=5):
 
     return generated_tweets, generated_tweets_raw
 
+def task3(text1, text2, n=5):
 
+    model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)
+    tokenizer1 = GPT2Tokenizer.from_pretrained(token_musk_path)
+
+    model2 = GPT2LMHeadModel.from_pretrained(model_trump_path)
+    tokenizer2 = GPT2Tokenizer.from_pretrained(token_trump_path)
+
+    if model1.config.n_positions == model2.config.n_positions:
+        max_length = model1.config.n_positions
+    else:
+        print("Models have different max length!!")
+        max_length = model1.config.n_positions
+
+    capitals_musk = get_capitals(text1)
+    capitals_trump = get_capitals(text2)
+
+    generated_tweets = []
+    generated_tweets_transferred = []
+
+    history = ""
+
+    initial_tweet = read_file(initial_tweet_path)
+    #save initial tweet
+    start_prompt = initial_tweet
+    history += "Elon Musk @elonmusk\n" + initial_tweet + "\n\n"
+
+
+    for _ in range(n):
+
+        # generate new musk tweet
+        sampled_word = random.choice(capitals_musk)
+        tweet_generated = generate_tweet(start_prompt + " " + sampled_word, model1, tokenizer1)
+        generated_tweets.append("musk: " + sampled_word + tweet_generated)
+        # style transfer to trump
+        tweet_transferred = generate_tweet(tweet_generated, model2, tokenizer2)
+        generated_tweets_transferred.append("trump: " + tweet_transferred)
+        history += "Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + tweet_transferred + "\n\n"
+
+        #set transferred tweet as new start prompt
+        start_prompt = tweet_transferred
+
+        # generate new trump tweet
+        sampled_word = random.choice(capitals_trump)
+        tweet_generated = generate_tweet(start_prompt + " " + sampled_word, model2, tokenizer2)
+        generated_tweets.append("trump: " + sampled_word + tweet_generated)
+        # style transfer to musk
+        tweet_transferred = generate_tweet(tweet_generated, model1, tokenizer1)
+        generated_tweets_transferred.append("musk: " + tweet_transferred)
+        history += "Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + tweet_transferred + "\n\n"
+
+        # set transferred tweet as new start prompt
+        start_prompt = tweet_transferred
+
+    print(history)
+
+    return generated_tweets, generated_tweets_transferred, history
 
 def main():
 
@@ -401,8 +512,8 @@ def main():
     #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=22)
     #fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=40)
 
-    #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=22)
-    #fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=40)
+    #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=3)
+    #fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=2)
 
     model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)
     tokenizer1 = GPT2Tokenizer.from_pretrained(token_musk_path)
@@ -410,31 +521,39 @@ def main():
     model2 = GPT2LMHeadModel.from_pretrained(model_trump_path)
     tokenizer2 = GPT2Tokenizer.from_pretrained(token_trump_path)
 
-    #test_model("SpaceX", model1, tokenizer1)
+    #initial_tweet = read_file(initial_tweet_path)
+    #test_model("<|startoftext|>If major Dogecoin holders sell most of their coins, it will get my full support. Too much concentration is the only real issue imo.", model1, tokenizer1)
     #test_model("This", model2, tokenizer2)
-
-
 
 
     #print(generate_tweet("SpaceX", model1, tokenizer1))
 
-    generated_tweets, generated_tweets_raw = discuss(tweets_cleaned_musk, tweets_cleaned_trump, n=100)
+    #generated_tweets, generated_tweets_raw = discuss(tweets_cleaned_musk, tweets_cleaned_trump, n=20)
 
-    for i, tweet in enumerate(generated_tweets_raw):
+    #for i, tweet in enumerate(generated_tweets_raw):
+    #    print(i)
+    #    print(tweet)
+
+    #save_data(generated_tweets, path_results + "/generated_tweets.txt")
+    #save_data(generated_tweets_raw, path_results + "/generated_tweets_raw.txt")
+
+
+    generated_tweets, generated_tweets_transferred, history = task3(tweets_cleaned_musk, tweets_cleaned_trump, n=100)
+
+    for i, (tweet_, tweet__) in enumerate(zip(generated_tweets, generated_tweets_transferred)):
         print(i)
-        print(tweet)
+        print(tweet_)
+        print(tweet__)
 
     save_data(generated_tweets, path_results + "/generated_tweets.txt")
-    save_data(generated_tweets_raw, path_results + "/generated_tweets_raw.txt")
-
+    save_data(generated_tweets_transferred, path_results + "/generated_tweets_transferred.txt")
+    save_data(history, path_results + "/history.txt")
 
     #initial_tweet = random.choice(tweets_musk)
 
 
     #new_tweet_musk = generate_tweet("do something")
 
-
-    #style_transferred_tweet = new_tweet_musk
 
     # Generate a new tweet based on the style-transferred tweet in Trump's style
     #new_tweet_trump = generate_tweet(style_transferred_tweet)
