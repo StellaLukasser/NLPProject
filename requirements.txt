@@ -6,3 +6,8 @@ evaluate~=0.4.2
 nltk~=3.8.1
 pandas~=2.2.2
 rouge-score
+openpyxl~=3.1.4
+torch~=2.3.1+cu118
+datasets~=2.19.2
+transformers~=4.41.2
+replicate~=0.26.0
