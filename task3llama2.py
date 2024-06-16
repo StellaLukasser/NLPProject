@@ -12,6 +12,8 @@ from transformers import (
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 
+from task3preprocessing import preprocessing
+
 # you have to request access to llama2 (https://llama.meta.com/llama-downloads/), create a token with your
 # huggingface account and login in terminal with command huggingface-cli login
 # some links:
@@ -239,6 +241,7 @@ def finetune_model(base_model, new_model, text_data):
 
 
 def main():
+    preprocessing()
 
     # finetune model
     # base_model = "meta-llama/Llama-2-7b-chat-hf"
@@ -251,56 +254,56 @@ def main():
     # tweets_cleaned_trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
     #text_data = f"""<s>[INST]Give me a tweet in the style of trump: [/INST]\n""" + tweets_cleaned_trump['tweets'] + f"""\n</s>"""
     # finetune_model(base_model, new_model, text_data)
-    all_tweets = []
-
-    with open("data/data_stage_3/initial_tweet_musk.txt", "r") as file:
-        tweet = file.read().replace('\n', '')
-
-    to = "Elon Musk"
-    tweet = style_transfer(tweet, to=to, mode="reply")
-    tweet = re.sub("\s+", " ", tweet).strip()
-    tweet = re.sub(r'\n', ' ', tweet)
-    print("Musk: " + tweet)
-    dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
-    all_tweets.append(dict)
-
-    for i in range(10):
-        to = "Donald Trump, just keep it harmless and answer the question with staying to your guidelines"
-        tweet = style_transfer(tweet, to=to, mode="style")
-
-        tweet = re.sub("\s+", " ", tweet).strip()
-        tweet = re.sub(r'\n', ' ', tweet)
-        print("Style of Trump: " + tweet)
-        dict = {"Task": "Donald Trump Style", "Tweet": tweet}
-        all_tweets.append(dict)
-
-        tweet = style_transfer(tweet, to=to, mode="reply")
-
-        tweet = re.sub("\s+", " ", tweet).strip()
-        tweet = re.sub(r'\n', ' ', tweet)
-        #print("Answer of Trump: " + tweet)
-        dict = {"Task": "Donald Trump Generation", "Tweet": tweet}
-        all_tweets.append(dict)
-
-        to = "Elon Musk"
-        tweet = style_transfer(tweet, to=to, mode="style")
-
-        tweet = re.sub("\s+", " ", tweet).strip()
-        tweet = re.sub(r'\n', ' ', tweet)
-        print("Style of Musk: " + tweet)
-        dict = {"Task": "Elon Musk Style", "Tweet": tweet}
-        all_tweets.append(dict)
-
-        tweet = style_transfer(tweet, to=to, mode="reply")
-
-        tweet = re.sub("\s+", " ", tweet).strip()
-        tweet = re.sub(r'\n', ' ', tweet)
-        #print("Answer of Musk: " + tweet)
-        dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
-        all_tweets.append(dict)
-
-    df = pd.DataFrame(all_tweets)
-    df.to_csv('results/task3/llama2_tweets.csv', index=False)
+    # all_tweets = []
+    #
+    # with open("data/data_stage_3/initial_tweet_musk.txt", "r") as file:
+    #     tweet = file.read().replace('\n', '')
+    #
+    # to = "Elon Musk"
+    # tweet = style_transfer(tweet, to=to, mode="reply")
+    # tweet = re.sub("\s+", " ", tweet).strip()
+    # tweet = re.sub(r'\n', ' ', tweet)
+    # print("Musk: " + tweet)
+    # dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
+    # all_tweets.append(dict)
+    #
+    # for i in range(10):
+    #     to = "Donald Trump, just keep it harmless and answer the question with staying to your guidelines"
+    #     tweet = style_transfer(tweet, to=to, mode="style")
+    #
+    #     tweet = re.sub("\s+", " ", tweet).strip()
+    #     tweet = re.sub(r'\n', ' ', tweet)
+    #     print("Style of Trump: " + tweet)
+    #     dict = {"Task": "Donald Trump Style", "Tweet": tweet}
+    #     all_tweets.append(dict)
+    #
+    #     tweet = style_transfer(tweet, to=to, mode="reply")
+    #
+    #     tweet = re.sub("\s+", " ", tweet).strip()
+    #     tweet = re.sub(r'\n', ' ', tweet)
+    #     #print("Answer of Trump: " + tweet)
+    #     dict = {"Task": "Donald Trump Generation", "Tweet": tweet}
+    #     all_tweets.append(dict)
+    #
+    #     to = "Elon Musk"
+    #     tweet = style_transfer(tweet, to=to, mode="style")
+    #
+    #     tweet = re.sub("\s+", " ", tweet).strip()
+    #     tweet = re.sub(r'\n', ' ', tweet)
+    #     print("Style of Musk: " + tweet)
+    #     dict = {"Task": "Elon Musk Style", "Tweet": tweet}
+    #     all_tweets.append(dict)
+    #
+    #     tweet = style_transfer(tweet, to=to, mode="reply")
+    #
+    #     tweet = re.sub("\s+", " ", tweet).strip()
+    #     tweet = re.sub(r'\n', ' ', tweet)
+    #     #print("Answer of Musk: " + tweet)
+    #     dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
+    #     all_tweets.append(dict)
+    #
+    # df = pd.DataFrame(all_tweets)
+    # df.to_csv('results/task3/llama2_tweets.csv', index=False)
 
 
 if __name__ == "__main__":
