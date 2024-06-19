@@ -6,7 +6,6 @@ import torch
 import re
 from datasets import Dataset
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
-from evaluation_metrics import bleu_score_, rouge_score_
 
 pd.set_option('display.max_colwidth', 170)
 
@@ -17,8 +16,12 @@ pd.set_option('display.max_colwidth', 170)
 path = os.curdir + "/data"
 file1_musk = path + "/data_stage_3/data_stage3_1_musk.xlsx"
 file2_trump = path + "/data_stage_3/data_stage3_2_trump.xlsx"
+
 path_results = os.curdir + "/results/task3"
 path_models = os.curdir + "/models/task3"
+
+path_processed_data_musk = os.curdir + "/processed_data/task3/tweets_cleaned_musk.txt"
+path_processed_data_trump = os.curdir + "/processed_data/task3/tweets_cleaned_trump.txt"
 
 model_musk_path = path_models + "/model_musk"
 model_trump_path = path_models + "/model_trump"
@@ -44,6 +47,18 @@ def save_data(data, path):
 
     with open(path, 'w') as file:
         file.write(data)
+
+def text_file_to_dataframe(file_path, column_name='Column'):
+
+    with open(file_path, 'r') as file:
+        lines = file.read().splitlines()
+
+    # Create DataFrame
+    df = pd.DataFrame({
+        column_name: lines
+    })
+
+    return df
 
 def read_file(filename):
     text = ""
@@ -152,8 +167,8 @@ def preprocessing():
     tweets_cleaned_trump_filtered.name = 'tweets'
 
     # save in csv
-    tweets_cleaned_trump_filtered.to_csv('tweets_cleaned_trump.csv', index=False, encoding='utf-8', sep=':')
-    tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8', sep=':')
+    save_data(tweets_cleaned_trump_filtered, path_processed_data_trump)
+    save_data(tweets_cleaned_musk, path_processed_data_musk)
 
 
 
@@ -178,8 +193,8 @@ def get_capitals(textdata):
     return capital_words
 
 
-def fine_tune(text_data, output_dir, model_path, token_path, epochs=5, batch_size=4, gradient_accumulation_steps=4,
-              learning_rate=1e-5, warmup_steps=500, max_length=128):
+def fine_tune(text_data, output_dir, model_path, token_path, epochs=5, batch_size=2, gradient_accumulation_steps=4,
+              learning_rate=1e-5, warmup_steps=1000, max_length=128):
 
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2',
                                               bos_token='<|startoftext|>',
@@ -208,7 +223,7 @@ def fine_tune(text_data, output_dir, model_path, token_path, epochs=5, batch_siz
 
 
     # Load the GPT-2 model
-    model = GPT2LMHeadModel.from_pretrained('gpt2', n_layer=5)
+    model = GPT2LMHeadModel.from_pretrained('gpt2')
     model.resize_token_embeddings(len(tokenizer))
 
     # Clear cache
@@ -279,22 +294,70 @@ def test_model(prompt, model, tokenizer):
         print("{}: {}\n\n".format(i, tokenizer.decode(sample_output, skip_special_tokens=True)))
 
 
-def generate_tweet(prompt, model, tokenizer):
+def generate_tweet(prompt, sampled_word, model, tokenizer, name):
     device = torch.device("cuda")
     model.to(device)
     model.eval()
 
     prompt_padded = "<|startoftext|>" + prompt
-
-    generated = torch.tensor(tokenizer.encode(prompt_padded)).unsqueeze(0)
+    prompt_addition = "\n" + f"{name} continues: "
+    generated = torch.tensor(tokenizer.encode(prompt_padded + prompt_addition + sampled_word)).unsqueeze(0)
     generated = generated.to(device)
 
+    print("Gen Prompt:")
+    print(tokenizer.decode(generated[0]))
     #print(generated)
 
     output = model.generate(
         generated,
         do_sample=True,
-        top_k=20,
+        top_k=15,
+        max_new_tokens=300,
+        top_p=0.95,
+        temperature=1.3,
+        early_stopping=True,
+        no_repeat_ngram_size=2,
+        num_beams=10,
+        num_return_sequences=10,
+        pad_token_id=tokenizer.pad_token_id,
+        attention_mask=torch.ones_like(generated)
+    )
+
+    generated_tweet = None
+
+    for sequence in output:
+        tweet = tokenizer.decode(sequence, skip_special_tokens=True)
+        tweet = tweet[len(prompt) + len(prompt_addition):].strip()
+
+        if len(tweet) > 0:
+            generated_tweet = tweet
+            break
+
+    if generated_tweet is None:
+        generated_tweet = generate_tweet(prompt, sampled_word, model, tokenizer, name)
+
+    return generated_tweet
+
+def style_transfer(prompt, sampled_word, model, tokenizer, name):
+    device = torch.device("cuda")
+
+    model.to(device)
+    model.eval()
+
+    prompt_padded = f"<|startoftext|>" + prompt
+    prompt_addition = "\n" + f"{name} repeats but in his own words: "
+
+    generated = torch.tensor(tokenizer.encode(prompt_padded + prompt_addition + sampled_word)).unsqueeze(0)
+    generated = generated.to(device)
+
+    print("Style Prompt:")
+    print(tokenizer.decode(generated[0]))
+    #print(generated)
+
+    output = model.generate(
+        generated,
+        do_sample=True,
+        top_k=10,
         max_new_tokens=300,
         top_p=0.95,
         temperature=0.9,
@@ -310,47 +373,14 @@ def generate_tweet(prompt, model, tokenizer):
 
     for sequence in output:
         tweet = tokenizer.decode(sequence, skip_special_tokens=True)
-        tweet = tweet[len(prompt):].strip()
+        tweet = tweet[len(prompt) + len(prompt_addition):].strip()
 
         if len(tweet) > 0:
             generated_tweet = tweet
             break
 
     if generated_tweet is None:
-        generated_tweet = generate_tweet(prompt, model, tokenizer)
-
-    return generated_tweet
-
-def style_transfer(prompt, model, tokenizer, style):
-    device = torch.device("cuda")
-
-    model.to(device)
-    model.eval()
-
-    prompt_padded = f"<|startoftext|><{style}>" + prompt
-
-    generated = torch.tensor(tokenizer.encode(prompt_padded)).unsqueeze(0)
-    generated = generated.to(device)
-
-    #print(generated)
-
-    output = model.generate(
-        generated,
-        do_sample=True,
-        top_k=50,
-        max_new_tokens=300,
-        top_p=0.90,
-        temperature=1.2,
-        early_stopping=True,
-        no_repeat_ngram_size=2,
-        num_beams=10,
-        num_return_sequences=1,
-        pad_token_id=tokenizer.pad_token_id,
-        attention_mask=torch.ones_like(generated)
-    )
-
-    generated_tweet = tokenizer.decode(output[0], skip_special_tokens=True)
-    generated_tweet = generated_tweet[len(prompt):].strip()
+        generated_tweet = style_transfer(prompt, sampled_word, model, tokenizer, name)
 
     return generated_tweet
 
@@ -473,10 +503,11 @@ def task3(text1, text2, n=5):
 
         # generate new musk tweet
         sampled_word = random.choice(capitals_musk)
-        tweet_generated = generate_tweet(start_prompt + " " + sampled_word, model1, tokenizer1)
-        generated_tweets.append("musk: " + sampled_word + tweet_generated)
+        tweet_generated = generate_tweet(start_prompt, sampled_word, model1, tokenizer1, "Elon Musk")
+        generated_tweets.append("musk: " + tweet_generated)
         # style transfer to trump
-        tweet_transferred = generate_tweet(tweet_generated, model2, tokenizer2)
+        sampled_word = random.choice(capitals_trump)
+        tweet_transferred = style_transfer(tweet_generated, sampled_word, model2, tokenizer2, "Donald Trump")
         generated_tweets_transferred.append("trump: " + tweet_transferred)
         history += "Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + tweet_transferred + "\n\n"
 
@@ -485,10 +516,11 @@ def task3(text1, text2, n=5):
 
         # generate new trump tweet
         sampled_word = random.choice(capitals_trump)
-        tweet_generated = generate_tweet(start_prompt + " " + sampled_word, model2, tokenizer2)
+        tweet_generated = generate_tweet(start_prompt, sampled_word, model2, tokenizer2, "Donald Trump")
         generated_tweets.append("trump: " + sampled_word + tweet_generated)
         # style transfer to musk
-        tweet_transferred = generate_tweet(tweet_generated, model1, tokenizer1)
+        sampled_word = random.choice(capitals_musk)
+        tweet_transferred = style_transfer(tweet_generated, sampled_word, model1, tokenizer1, "Elon Musk")
         generated_tweets_transferred.append("musk: " + tweet_transferred)
         history += "Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + tweet_transferred + "\n\n"
 
@@ -503,16 +535,16 @@ def main():
 
     #preprocessing()
 
-    tweets_cleaned_musk = pd.read_csv('tweets_cleaned_musk.csv', encoding='utf-8', sep=':')
-    tweets_cleaned_trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
+    tweets_cleaned_musk = text_file_to_dataframe(path_processed_data_musk, 'tweets')
+    tweets_cleaned_trump = text_file_to_dataframe(path_processed_data_trump, 'tweets')
 
-    #print(tweets_cleaned_musk.head[50])
-    #print(tweets_cleaned_trump.head[50])
+    #tweets_cleaned_musk = pd.read_csv('tweets_cleaned_musk.csv', encoding='utf-8', sep='|')
+    #tweets_cleaned_trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep='|')
 
-    #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=22)
-    #fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=40)
+    #print(tweets_cleaned_musk.head(50))
+    #print(tweets_cleaned_trump.head(50))
 
-    #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=3)
+    #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=2)
     #fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=2)
 
     model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)

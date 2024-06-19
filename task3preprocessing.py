@@ -1,19 +1,34 @@
 import numpy as np
+import os
 import pandas as pd
 import re
-import random
 
-pd.set_option('display.max_colwidth', 170)
 
+path = os.curdir + "/data"
+file1_musk = path + "/data_stage_3/data_stage3_1_musk.xlsx"
+file2_trump = path + "/data_stage_3/data_stage3_2_trump.xlsx"
+path_results = os.curdir + "/results/task3"
+path_models = os.curdir + "/models/task3"
+
+
+
+def read_file(filename):
+    text = ""
+    with open(filename, "r", encoding="UTF8") as f:
+        for line in f:
+            if len(line) > 1:
+                text += line
+    return text
 
 def clean_tweet_musk(tweet):
     tweet = re.sub(r'\n', ' ', tweet)                                         # remove line breaks
-    tweet = tweet + "\n"                                                      # add break at the end (helper)
+    tweet = tweet + "\n"                                                                  # add break at the end (helper)
     tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet, flags=re.MULTILINE) # remove links
     tweet = re.sub(r'@\w+', '', tweet)                                        # remove taggings
-    tweet = re.sub(r'#\w+', '', tweet)                                        # remove hashtags
+    #tweet = re.sub(r'#\w+', '', tweet)                                                   # remove hashtags
     tweet = re.sub(r'(\d+(\.|,|K| )*)+\n', ' ', tweet)                        # remove numbers at the end of a line
     tweet = re.sub("\w+\.com", " ", tweet)                                    # remove websites
+    tweet = re.sub(r"\d others", "", tweet)                                   # remove "x others"
     tweet = re.sub("\s+", " ", tweet).strip()                                 # remove unnecessary whitespaces
     tweet = re.sub(r'Replying to (and )*', '', tweet)                         # remove "Replying to ... (and ...)"
 
@@ -22,11 +37,11 @@ def clean_tweet_musk(tweet):
 
 def clean_tweet_trump(tweet):
     tweet = re.sub(r'\n', ' ', tweet)                                         # remove line breaks
-    tweet = tweet + "\n"                                                      # add break at the end (helper)
+    tweet = tweet + "\n"                                                                  # add break at the end (helper)
     tweet = re.sub(r'RT @realDonaldTrump:', '', tweet)
     tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet, flags=re.MULTILINE) # remove links
     tweet = re.sub(r'@\w+', '', tweet)                                        # remove taggings
-    tweet = re.sub(r'#\w+', '', tweet)                                        # remove hashtags
+    #tweet = re.sub(r'#\w+', '', tweet)                                                   # remove hashtags
     tweet = re.sub(r'(\d+(\.|,|K| )*)+\n', ' ', tweet)                        # remove numbers at the end of a line
     tweet = re.sub("\w+\.com", " ", tweet)                                    # remove websites
     tweet = re.sub("\s+", " ", tweet).strip()                                 # remove unnecessary whitespaces
@@ -98,18 +113,12 @@ def preprocessing():
     # remove retweets which are not from trump
     tweets_cleaned_trump_filtered = tweets_cleaned_trump[~tweets_cleaned_trump.str.startswith('RT')]
 
+    tweets_cleaned_musk = tweets_cleaned_musk.str.strip('"')
+    tweets_cleaned_musk.name = 'tweets'
+
+    tweets_cleaned_trump_filtered = tweets_cleaned_trump_filtered.str.strip('"')
+    tweets_cleaned_trump_filtered.name = 'tweets'
+
     # save in csv
-    tweets_cleaned_trump_filtered.to_csv('tweets_cleaned_trump.csv', index=False, encoding='utf-8')
-    tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8')
-    return tweets_cleaned_musk, tweets_cleaned_trump
-
-
-def main():
-
-    preprocessing()
-    trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
-    musk = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
-
-
-if __name__ == '__main__':
-    main()
+    tweets_cleaned_trump_filtered.to_csv('tweets_cleaned_trump.csv', index=False, encoding='utf-8', sep=':')
+    tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8', sep=':')

@@ -6,7 +6,7 @@ from keras.src.saving.saving_api import load_model
 from keras.src.utils import to_categorical
 import numpy as np
 import tensorflow as tf
-from evaluation_metrics import bleu_score_, rouge_score_
+from evaluation_metrics import bleu_score_, rouge_score_, bert_score_
 
 replacement_map = {"-": " ",
                    "—": " ",
@@ -104,6 +104,9 @@ def eval_task1(gen_file):
     reference = [' '.join(sentence) for sentence in reference]
     generated_text = [' '.join(sentence) for sentence in generated_text]
     print(f"ROUGE score: {rouge_score_(reference, generated_text)}")
+
+    print(f"BERTScore: {bert_score_(reference, generated_text)}")
+
 
 
 def insert_punctuations(gen_file_path, gen_file_path_with_punc):
@@ -219,10 +222,14 @@ def generate_text(gen_file_path):
 def main():
     create_directories()
 
-    # filename = path_results + "/group24_stage1_generation" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
-    # filename_punc = path_results + "/group24_stage1_generation_with_punc" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
-    # generate_text(gen_file_path=filename)
-    # insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
+    # set if you want to generate new text (look at model parameters in generate_text function)
+    generate = False
+
+    if generate:
+        filename = path_results + "/group24_stage1_generation" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
+        filename_punc = path_results + "/group24_stage1_generation_with_punc" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
+        generate_text(gen_file_path=filename)
+        insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
 
     # model 1
     filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1038.txt"
