@@ -3,12 +3,10 @@
 import os
 import re
 from datetime import datetime
-
 import numpy as np
 import tensorflow as tf
 from keras.src.saving.saving_api import load_model
-
-from evaluation_metrics import bleu_score_, rouge_score_
+from evaluation_metrics import bleu_score_, rouge_score_, bert_score_
 
 path = os.curdir + "/data"
 path_models = os.curdir + "/models/task2"
@@ -213,6 +211,9 @@ def eval_task2(text_kogler, text_kickl, generated_text_kogler, generated_text_ki
     print(f"Kogler ROUGE score: {rouge_score_(text_kogler, generated_text_kogler)}")
     print(f"Kickl ROUGE score: {rouge_score_(text_kickl, generated_text_kickl)}")
 
+    print(f"Kickl BERTScore: {bert_score_(text_kickl, generated_text_kickl)}")
+    print(f"Kickl BERTScore: {bert_score_(text_kogler, generated_text_kogler)}")
+
 
 def main():
     create_directories()
@@ -223,33 +224,40 @@ def main():
     text_kogler = pre_processing(text_kogler)
     text_kickl = pre_processing(text_kickl)
 
-    # Generate text
-    #generate_text(text_kickl, text_kogler, model_name='rnn128_100_epochs_batchsize_64_dropout_20')
+    # set to True to generate new text, see generate text for model parameters
+    generate = False
 
-    # Evaluate text
-    # RNN
-    generated_text_kogler = read_file(path_results + "/testsystem_1805/group24_stage2_generation1.txt")
-    generated_text_kickl = read_file(path_results + "/testsystem_1805/group24_stage2_generation2.txt")
-    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
-                                                                                        generated_text_kogler,
-                                                                                        generated_text_kickl)
-    eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+    if generate:
+        generate_text(text_kickl, text_kogler, model_name='rnn128_100_epochs_batchsize_64_dropout_20')
 
-    # Markov advanced
-    generated_text_kogler = read_file(os.curdir + "/results/markov_adv_kogler_maxseq20.txt")
-    generated_text_kickl = read_file(os.curdir + "/results/markov_adv_kickl_maxseq20.txt")
-    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
-                                                                                        generated_text_kogler,
-                                                                                        generated_text_kickl)
-    eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+    # set to True to evaluate text, adapt file names below
+    evaluate = True
 
-    # LSTM with temperature
-    generated_text_kogler = read_file(os.curdir + "/results/lstm_kogler_temp1.0_100epochs.txt")
-    generated_text_kickl = read_file(os.curdir + "/results/lstm_kickl_temp1.0_100epochs.txt")
-    text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
-                                                                                        generated_text_kogler,
-                                                                                        generated_text_kickl)
-    eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+    if evaluate:
+        # Evaluate text
+        # RNN
+        generated_text_kogler = read_file(path_results + "/testsystem_1805/group24_stage2_generation1.txt")
+        generated_text_kickl = read_file(path_results + "/testsystem_1805/group24_stage2_generation2.txt")
+        text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                            generated_text_kogler,
+                                                                                            generated_text_kickl)
+        eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+
+        # Markov advanced
+        generated_text_kogler = read_file(os.curdir + "/results/task2/markov_adv_kogler_maxseq20.txt")
+        generated_text_kickl = read_file(os.curdir + "/results/task2/markov_adv_kickl_maxseq20.txt")
+        text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                            generated_text_kogler,
+                                                                                            generated_text_kickl)
+        eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+
+        # LSTM with temperature
+        generated_text_kogler = read_file(os.curdir + "/results/task2/lstm_kogler_temp1.0_100epochs.txt")
+        generated_text_kickl = read_file(os.curdir + "/results/task2/lstm_kickl_temp1.0_100epochs.txt")
+        text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                            generated_text_kogler,
+                                                                                            generated_text_kickl)
+        eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
 
 
 if __name__ == '__main__':
