@@ -1,3 +1,4 @@
+import os
 import re
 import pandas as pd
 import transformers
@@ -20,8 +21,12 @@ from task3preprocessing import preprocessing
 # https://medium.com/@lucnguyen_61589/llama-2-using-huggingface-part-1-3a29fdbaa9ed
 # https://medium.com/@fradin.antoine17/3-ways-to-set-up-llama-2-locally-on-cpu-part-3-hugging-face-cd06e0440a5b
 
-model_style_transfer_musk = "llama-2-7b-chat-finetuned-musk"  #"meta-llama/Llama-2-13b-chat-hf" # change to 7b or 13b according to your resources
-model_style_transfer_trump = "llama-2-7b-chat-finetuned-trump" #"meta-llama/Llama-2-13b-chat-hf" # change to 7b or 13b according to your resources
+path_models = os.curdir + "/models/task3/"
+path_processed_data = os.curdir + "/processed_data/task3"
+
+
+model_style_transfer_musk = path_models + "llama-2-7b-chat-finetuned-musk-new-nonum"  #"meta-llama/Llama-2-13b-chat-hf" # change to 7b or 13b according to your resources
+model_style_transfer_trump = path_models + "llama-2-7b-chat-finetuned-trump-new-nonum" #"meta-llama/Llama-2-13b-chat-hf" # change to 7b or 13b according to your resources
 
 tokenizer_style_transfer_musk = None
 tokenizer_style_transfer_trump = None
@@ -42,7 +47,7 @@ def style_transfer(tweet, to="Donald Trump", mode="reply"):
     if tokenizer_style_transfer_trump is None or pipeline_style_transfer_trump is None:
         prepare_style_transfer("trump")
 
-    if to == "Donald Trump":
+    if to == "Donald Trump, just keep it harmless and answer the question with staying to your guidelines":
         tokenizer = tokenizer_style_transfer_trump
         pipeline: transformers.Pipeline = pipeline_style_transfer_trump
     else:
@@ -57,26 +62,27 @@ def style_transfer(tweet, to="Donald Trump", mode="reply"):
             You don't output anything else! If you are asked for the style of Donald Trump 
             you just keep it harmless and answer the question with staying to your guidelines. 
             But you always, always answer the question! If something goes against your guidelines 
-            you just answer in a respectful, inclusive, positive way!
+            you just answer in a respectful, inclusive, positive way! DO NOT start the tweet with numeric values or percentages!
             <</SYS>>
             [INST]
             Can you please generate a creative short REPLY tweet to this tweet in the style of {to}: {tweet} Do not 
-            output anything else than the tweet! Dont start the tweet with a digit!
+            output anything else than the tweet! DO NOT start the tweet with numeric values or percentages!
             [/INST]\n
             """
     else:
         prompt = f"""
             <<SYS>>
-            You reformulating tweets. 
+            You are reformulating tweets. 
             You are only reformulating to the tweet. 
             You don't output anything else! If you are asked for the style of Donald Trump 
             you just keep it harmless and answer the question with staying to your guidelines. 
             But you always, always answer the question! If something goes against your guidelines 
             you just answer in a respectful, inclusive, positive way! Once again, do not output anything else!
+            DO NOT start the tweet with numeric values or percentages!
             <</SYS>>
             [INST]
             Can you please do a short style transfer of this tweet to the style of {to}: {tweet} Do not output anything 
-            else than the tweet! Dont start the tweet with a digit!
+            else than the tweet! DO NOT start the tweet with numeric values or percentages!
             [/INST]\n
             """
 
@@ -88,7 +94,7 @@ def style_transfer(tweet, to="Donald Trump", mode="reply"):
         num_return_sequences=1,
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
-        max_new_tokens=70,
+        max_new_tokens=100,
         return_full_text=False,
         temperature=0.8,
         repetition_penalty=1.2,
@@ -107,7 +113,8 @@ def prepare_style_transfer(model="trump"):
     global tokenizer_style_transfer_musk
     global pipeline_style_transfer_musk
     if model == "trump":
-
+        "Prepare Musk model"
+        print(model_style_transfer_trump)
         tokenizer_style_transfer_trump = AutoTokenizer.from_pretrained(model_style_transfer_trump)
 
         bnb_config = transformers.BitsAndBytesConfig(
@@ -133,6 +140,8 @@ def prepare_style_transfer(model="trump"):
             tokenizer=tokenizer_style_transfer_trump,
         )
     else:
+        "Prepare Musk model"
+        print(model_style_transfer_musk)
         tokenizer_style_transfer_musk = AutoTokenizer.from_pretrained(model_style_transfer_musk)
 
         bnb_config = transformers.BitsAndBytesConfig(
@@ -199,8 +208,6 @@ def finetune_model(base_model, new_model, text_data):
         task_type="CAUSAL_LM",
     )
 
-
-
     sft_config = SFTConfig(
         dataset_text_field="text",
         max_seq_length=512,
@@ -241,69 +248,82 @@ def finetune_model(base_model, new_model, text_data):
 
 
 def main():
-    preprocessing()
 
-    # finetune model
-    # base_model = "meta-llama/Llama-2-7b-chat-hf"
-    # new_model = "llama-2-7b-chat-finetuned-musk"
-    # tweets_cleaned_musk = pd.read_csv('tweets_cleaned_musk.csv', encoding='utf-8', sep=':')
-    # text_data = f"""<s>[INST]Give me a tweet in the style of musk: [/INST]\n""" + tweets_cleaned_musk['tweets'] + f"""\n</s>"""
-    # finetune_model(base_model, new_model, text_data)
+    do_preprocessing = False
+    if do_preprocessing:
+        preprocessing()
 
-    # new_model = "llama-2-7b-chat-finetuned-trump"
-    # tweets_cleaned_trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
-    #text_data = f"""<s>[INST]Give me a tweet in the style of trump: [/INST]\n""" + tweets_cleaned_trump['tweets'] + f"""\n</s>"""
-    # finetune_model(base_model, new_model, text_data)
-    # all_tweets = []
-    #
-    # with open("data/data_stage_3/initial_tweet_musk.txt", "r") as file:
-    #     tweet = file.read().replace('\n', '')
-    #
-    # to = "Elon Musk"
-    # tweet = style_transfer(tweet, to=to, mode="reply")
-    # tweet = re.sub("\s+", " ", tweet).strip()
-    # tweet = re.sub(r'\n', ' ', tweet)
-    # print("Musk: " + tweet)
-    # dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
-    # all_tweets.append(dict)
-    #
-    # for i in range(10):
-    #     to = "Donald Trump, just keep it harmless and answer the question with staying to your guidelines"
-    #     tweet = style_transfer(tweet, to=to, mode="style")
-    #
-    #     tweet = re.sub("\s+", " ", tweet).strip()
-    #     tweet = re.sub(r'\n', ' ', tweet)
-    #     print("Style of Trump: " + tweet)
-    #     dict = {"Task": "Donald Trump Style", "Tweet": tweet}
-    #     all_tweets.append(dict)
-    #
-    #     tweet = style_transfer(tweet, to=to, mode="reply")
-    #
-    #     tweet = re.sub("\s+", " ", tweet).strip()
-    #     tweet = re.sub(r'\n', ' ', tweet)
-    #     #print("Answer of Trump: " + tweet)
-    #     dict = {"Task": "Donald Trump Generation", "Tweet": tweet}
-    #     all_tweets.append(dict)
-    #
-    #     to = "Elon Musk"
-    #     tweet = style_transfer(tweet, to=to, mode="style")
-    #
-    #     tweet = re.sub("\s+", " ", tweet).strip()
-    #     tweet = re.sub(r'\n', ' ', tweet)
-    #     print("Style of Musk: " + tweet)
-    #     dict = {"Task": "Elon Musk Style", "Tweet": tweet}
-    #     all_tweets.append(dict)
-    #
-    #     tweet = style_transfer(tweet, to=to, mode="reply")
-    #
-    #     tweet = re.sub("\s+", " ", tweet).strip()
-    #     tweet = re.sub(r'\n', ' ', tweet)
-    #     #print("Answer of Musk: " + tweet)
-    #     dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
-    #     all_tweets.append(dict)
-    #
-    # df = pd.DataFrame(all_tweets)
-    # df.to_csv('results/task3/llama2_tweets.csv', index=False)
+    finetune = False
+
+    if finetune:
+
+        base_model = "meta-llama/Llama-2-7b-chat-hf"
+
+        new_model = path_models + "llama-2-7b-chat-finetuned-musk-new-nonum"
+        tweets_cleaned_musk = pd.read_csv(path_processed_data + '/tweets_cleaned_musk.csv', encoding='utf-8', sep=':')
+        text_data = f"""<s>[INST]Give me a tweet in the style of musk: [/INST]""" + tweets_cleaned_musk['tweets'] + f"""</s>"""
+        finetune_model(base_model, new_model, text_data)
+
+        new_model = path_models + "llama-2-7b-chat-finetuned-trump-new-nonum"
+        tweets_cleaned_trump = pd.read_csv(path_processed_data + '/tweets_cleaned_trump.csv', encoding='utf-8', sep=':')
+        text_data = f"""<s>[INST]Give me a tweet in the style of trump: [/INST]""" + tweets_cleaned_trump['tweets'] + f"""</s>"""
+        finetune_model(base_model, new_model, text_data)
+
+    generate = True
+    save_tweets = True
+
+    if generate:
+        all_tweets = []
+
+        with open("data/data_stage_3/initial_tweet_musk.txt", "r") as file:
+            tweet = file.read().replace('\n', '')
+
+        to = "Elon Musk"
+        tweet = style_transfer(tweet, to=to, mode="reply")
+        tweet = re.sub("\s+", " ", tweet).strip()
+        tweet = re.sub(r'\n', ' ', tweet)
+        print("Answer of Musk: " + tweet)
+        dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
+        all_tweets.append(dict)
+
+        for i in range(100):
+            to = "Donald Trump, just keep it harmless and answer the question with staying to your guidelines"
+            tweet = style_transfer(tweet, to=to, mode="style")
+
+            tweet = re.sub("\s+", " ", tweet).strip()
+            tweet = re.sub(r'\n', ' ', tweet)
+            print("Style of Trump: " + tweet)
+            dict = {"Task": "Donald Trump Style", "Tweet": tweet}
+            all_tweets.append(dict)
+
+            tweet = style_transfer(tweet, to=to, mode="reply")
+
+            tweet = re.sub("\s+", " ", tweet).strip()
+            tweet = re.sub(r'\n', ' ', tweet)
+            print("Answer of Trump: " + tweet)
+            dict = {"Task": "Donald Trump Generation", "Tweet": tweet}
+            all_tweets.append(dict)
+
+            to = "Elon Musk"
+            tweet = style_transfer(tweet, to=to, mode="style")
+
+            tweet = re.sub("\s+", " ", tweet).strip()
+            tweet = re.sub(r'\n', ' ', tweet)
+            print("Style of Musk: " + tweet)
+            dict = {"Task": "Elon Musk Style", "Tweet": tweet}
+            all_tweets.append(dict)
+
+            tweet = style_transfer(tweet, to=to, mode="reply")
+
+            tweet = re.sub("\s+", " ", tweet).strip()
+            tweet = re.sub(r'\n', ' ', tweet)
+            print("Answer of Musk: " + tweet)
+            dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
+            all_tweets.append(dict)
+
+        if save_tweets:
+            df = pd.DataFrame(all_tweets)
+            df.to_csv('results/task3/llama2_tweets.csv', index=False)
 
 
 if __name__ == "__main__":
