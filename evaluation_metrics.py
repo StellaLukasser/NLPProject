@@ -12,7 +12,7 @@ def bleu_score_(ref, gen, weights):
     calculate bleu score. uses nltk implementation
     Args:
         ref: list of ref sentences [["this", "is", "a", "sentence"], ["this", "is", "another", "one"]]
-        gen: list of ref sentences [["this", "is", "a", "sentence"], ["this", "is", "another", "one"]]
+        gen: list of gen sentences [["this", "is", "a", "sentence"], ["this", "is", "another", "one"]]
         weights: which n-grams to use for bleu score
 
     Returns:

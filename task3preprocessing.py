@@ -9,7 +9,7 @@ file1_musk = path + "/data_stage_3/data_stage3_1_musk.xlsx"
 file2_trump = path + "/data_stage_3/data_stage3_2_trump.xlsx"
 path_results = os.curdir + "/results/task3"
 path_models = os.curdir + "/models/task3"
-
+path_processed_data = os.curdir + "/processed_data/task3"
 
 
 def read_file(filename):
@@ -31,7 +31,7 @@ def clean_tweet_musk(tweet):
     tweet = re.sub(r"\d others", "", tweet)                                   # remove "x others"
     tweet = re.sub("\s+", " ", tweet).strip()                                 # remove unnecessary whitespaces
     tweet = re.sub(r'Replying to (and )*', '', tweet)                         # remove "Replying to ... (and ...)"
-
+    tweet = tweet.lstrip(" .,!")
     return tweet
 
 
@@ -106,6 +106,11 @@ def preprocessing():
     # Remove tweets shorter than 20 chars
     tweets_cleaned_musk = tweets_cleaned_musk[tweets_cleaned_musk.map(len) > 20]
 
+    # Remove tweets starting with digits
+    tweets_cleaned_musk = tweets_cleaned_musk[~tweets_cleaned_musk.str.match(r'^\d+')]
+    tweets_cleaned_trump = tweets_cleaned_trump[~tweets_cleaned_trump.str.match(r'^\d+')]
+
+
     # remove now empty lines
     tweets_cleaned_musk.dropna(inplace=True)
     tweets_cleaned_trump.dropna(inplace=True)
@@ -120,5 +125,5 @@ def preprocessing():
     tweets_cleaned_trump_filtered.name = 'tweets'
 
     # save in csv
-    tweets_cleaned_trump_filtered.to_csv('tweets_cleaned_trump.csv', index=False, encoding='utf-8', sep=':')
-    tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8', sep=':')
+    tweets_cleaned_trump_filtered.to_csv(path_processed_data + '/tweets_cleaned_trump.csv', index=False, encoding='utf-8', sep=':')
+    tweets_cleaned_musk.to_csv(path_processed_data + '/tweets_cleaned_musk.csv', index=False, encoding='utf-8', sep=':')
