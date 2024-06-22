@@ -10,10 +10,17 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
 )
-from peft import LoraConfig
-from trl import SFTTrainer, SFTConfig
+# uncomment before running evaluation
+# from peft import LoraConfig
+# from trl import SFTTrainer, SFTConfig
+
+import nltk
+nltk.download('punkt')
+from nltk import tokenize
+from nltk import word_tokenize
 
 from task3preprocessing import preprocessing
+from evaluation_metrics import bleu_score_, rouge_score_, bert_score_
 
 # you have to request access to llama2 (https://llama.meta.com/llama-downloads/), create a token with your
 # huggingface account and login in terminal with command huggingface-cli login
@@ -247,8 +254,7 @@ def finetune_model(base_model, new_model, text_data):
     trainer.tokenizer.save_pretrained(new_model)
 
 
-def main():
-
+def generation():
     do_preprocessing = False
     if do_preprocessing:
         preprocessing()
@@ -324,6 +330,63 @@ def main():
         if save_tweets:
             df = pd.DataFrame(all_tweets)
             df.to_csv('results/task3/llama2_tweets.csv', index=False)
+
+
+def evaluation():
+    #reference 
+    with open("processed_data/task3/tweets_cleaned_musk.txt", "r") as file:
+        tweets_cleaned_musk = file.read().replace('\n', ' ')
+
+    with open("processed_data/task3/tweets_cleaned_trump.txt", "r") as file:
+        tweets_cleaned_trump = file.read().replace('\n', ' ')
+    #for rouge and bert
+    tweets_cleaned_musk = tokenize.sent_tokenize(tweets_cleaned_musk)
+    tweets_cleaned_trump = tokenize.sent_tokenize(tweets_cleaned_trump)
+    #for bleu
+    musk_ref = []
+    trump_ref = []
+    for i in tweets_cleaned_musk:
+        musk_ref.append(i.split())
+    for i in tweets_cleaned_trump:
+        trump_ref.append(i.split())
+
+
+    #generated
+    df = pd.read_csv('results/task3/llama2_tweets.csv')
+    musk_gen = df[~df['Task'].astype(str).str.startswith('D')]
+    trump_gen = df[~df['Task'].astype(str).str.startswith('E')]
+
+    musk_gen = musk_gen["Tweet"].tolist()
+    trump_gen = trump_gen["Tweet"].tolist()
+    #for bleu
+    musk_gen = [word_tokenize (sent) for sent in musk_gen]
+    trump_gen = [word_tokenize (sent) for sent in trump_gen]
+
+    musk_gen_rouge_bert = []
+    trump_gen_rouge_bert = []
+    for i in musk_gen:
+        musk_gen_rouge_bert.append(' '.join(i))
+    for i in trump_gen:
+        trump_gen_rouge_bert.append(' '.join(i))
+
+    print(f"Musk bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(musk_ref, musk_gen, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Musk bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(musk_ref, musk_gen, (0.5, 0.5, 0, 0))}")
+    print(f"Musk bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(musk_ref, musk_gen, (0.5, 0.25, 0.25, 0))}")
+
+    print(f"Trump bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(trump_ref, trump_gen, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Trump bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(trump_ref, trump_gen, (0.5, 0.5, 0, 0))}")
+    print(f"Trump bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(trump_ref, trump_gen, (0.5, 0.25, 0.25, 0))}")
+
+    print(f"Musk ROUGE score: {rouge_score_(tweets_cleaned_musk, musk_gen_rouge_bert)}")
+    print(f"Trump ROUGE score: {rouge_score_(tweets_cleaned_trump, trump_gen_rouge_bert)}")
+
+    print(f"Musk BERTScore: {bert_score_(tweets_cleaned_musk, musk_gen_rouge_bert)}")
+    print(f"Trump BERTScore: {bert_score_(tweets_cleaned_trump, trump_gen_rouge_bert)}")
+
+def main():
+    #generation()
+    evaluation()
+    
 
 
 if __name__ == "__main__":
