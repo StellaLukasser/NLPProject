@@ -6,7 +6,6 @@ import torch
 import re
 from datasets import Dataset
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
-
 pd.set_option('display.max_colwidth', 170)
 
 #https://armandolivares.tech/2022/09/16/how-to-create-a-tweet-generator-with-gpt-2/
@@ -30,10 +29,6 @@ token_trump_path = path_models + "/token_trump"
 output_musk_path = path_models + "/output_musk"
 output_trump_path = path_models + "/output_trump"
 initial_tweet_path = path + "/data_stage_3/initial_tweet_musk.txt"
-
-
-#preprocessing#
-#copypasted from edina
 
 
 def save_data(data, path):
@@ -384,92 +379,6 @@ def style_transfer(prompt, sampled_word, model, tokenizer, name):
 
     return generated_tweet
 
-def discuss(text1, text2, n=5):
-
-    model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)
-    tokenizer1 = GPT2Tokenizer.from_pretrained(token_musk_path)
-
-    model2 = GPT2LMHeadModel.from_pretrained(model_trump_path)
-    tokenizer2 = GPT2Tokenizer.from_pretrained(token_trump_path)
-
-    if model1.config.n_positions == model2.config.n_positions:
-        max_length = model1.config.n_positions
-    else:
-        print("Models have different max length!!")
-        max_length = model1.config.n_positions
-
-    capitals_musk = get_capitals(text1)
-    capitals_trump = get_capitals(text2)
-
-    generated_tweets = []
-    generated_tweets_raw = []
-
-    history = ""
-    last_prompt = ""
-
-    start_with = random.choice(["musk", "trump"])
-    if start_with == "musk":
-        start_prompt = "<|startoftext|>Elon Musk @elonmusk\n" + random.choice(capitals_musk)
-        tweet1 = generate_tweet(start_prompt, model1, tokenizer1)
-        generated_tweets.append(start_prompt[len("<|startoftext|>"):] + tweet1)
-        generated_tweets_raw.append(start_prompt[len("<|startoftext|>Elon Musk @elonmusk\n"):] + tweet1)
-        history += start_prompt[len("<|startoftext|>"):] + tweet1
-    else:
-        start_prompt = "<|startoftext|>Donald J Trump @realDonaldTrump\n" + random.choice(capitals_trump)
-        tweet2 = generate_tweet(start_prompt, model2, tokenizer2)
-        generated_tweets.append(start_prompt[len("<|startoftext|>"):] + tweet2)
-        generated_tweets_raw.append(start_prompt[len("<|startoftext|>Donald J Trump @realDonaldTrump\n"):] + tweet2)
-        history += start_prompt[len("<|startoftext|>"):] + tweet2
-    for _ in range(n):
-
-        if start_with == "musk":
-
-            sampled_word = random.choice(capitals_trump)
-            new_prompt = history + "\n\n" + "Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + sampled_word
-            if len(new_prompt) > max_length:
-                new_prompt = new_prompt[-max_length:]
-
-            tweet2 = generate_tweet(new_prompt, model2, tokenizer2)
-            generated_tweets.append("Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + sampled_word + tweet2)
-            generated_tweets_raw.append(sampled_word + tweet2)
-            history += "\n\n" + "Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + sampled_word + tweet2
-
-
-            sampled_word = random.choice(capitals_musk)
-            new_prompt = history + "\n\n" + "Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + sampled_word
-            if len(new_prompt) > max_length:
-                new_prompt = new_prompt[-max_length:]
-
-            tweet1 = generate_tweet(new_prompt, model1, tokenizer1)
-            generated_tweets.append("Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + sampled_word + tweet1)
-            generated_tweets_raw.append(sampled_word + tweet1)
-            history += "\n\n" + "Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + sampled_word + tweet1
-
-        else:
-            sampled_word = random.choice(capitals_musk)
-            new_prompt = history + "\n\n" + "Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + sampled_word
-            if len(new_prompt) > max_length:
-                new_prompt = new_prompt[-max_length:]
-
-            tweet1 = generate_tweet(new_prompt, model1, tokenizer1)
-            generated_tweets.append("Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + sampled_word + tweet1)
-            generated_tweets_raw.append(sampled_word + tweet1)
-            history += "\n\n" + "Elon Musk @elonmusk\nreplying to @realDonaldTrump\n" + sampled_word + tweet1
-
-
-            sampled_word = random.choice(capitals_trump)
-            new_prompt = history + "\n\n" + "Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + sampled_word
-            if len(new_prompt) > max_length:
-                new_prompt = new_prompt[-max_length:]
-
-            tweet2 = generate_tweet(new_prompt, model2, tokenizer2)
-            generated_tweets.append("Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + sampled_word + tweet2)
-            generated_tweets_raw.append(sampled_word + tweet2)
-            history += "\n\n" + "Donald J Trump @realDonaldTrump\nreplying to @elonmusk\n" + sampled_word + tweet2
-
-    print(history)
-
-    return generated_tweets, generated_tweets_raw
 
 def task3(text1, text2, n=5):
 
@@ -533,19 +442,13 @@ def task3(text1, text2, n=5):
 
 def main():
 
-    #preprocessing()
+    preprocessing()
 
     tweets_cleaned_musk = text_file_to_dataframe(path_processed_data_musk, 'tweets')
     tweets_cleaned_trump = text_file_to_dataframe(path_processed_data_trump, 'tweets')
 
-    #tweets_cleaned_musk = pd.read_csv('tweets_cleaned_musk.csv', encoding='utf-8', sep='|')
-    #tweets_cleaned_trump = pd.read_csv('tweets_cleaned_trump.csv', encoding='utf-8', sep='|')
-
-    #print(tweets_cleaned_musk.head(50))
-    #print(tweets_cleaned_trump.head(50))
-
-    #fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=2)
-    #fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=2)
+    fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=2)
+    fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=2)
 
     model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)
     tokenizer1 = GPT2Tokenizer.from_pretrained(token_musk_path)
@@ -553,48 +456,12 @@ def main():
     model2 = GPT2LMHeadModel.from_pretrained(model_trump_path)
     tokenizer2 = GPT2Tokenizer.from_pretrained(token_trump_path)
 
-    #initial_tweet = read_file(initial_tweet_path)
-    #test_model("<|startoftext|>If major Dogecoin holders sell most of their coins, it will get my full support. Too much concentration is the only real issue imo.", model1, tokenizer1)
-    #test_model("This", model2, tokenizer2)
-
-
-    #print(generate_tweet("SpaceX", model1, tokenizer1))
-
-    #generated_tweets, generated_tweets_raw = discuss(tweets_cleaned_musk, tweets_cleaned_trump, n=20)
-
-    #for i, tweet in enumerate(generated_tweets_raw):
-    #    print(i)
-    #    print(tweet)
-
-    #save_data(generated_tweets, path_results + "/generated_tweets.txt")
-    #save_data(generated_tweets_raw, path_results + "/generated_tweets_raw.txt")
-
 
     generated_tweets, generated_tweets_transferred, history = task3(tweets_cleaned_musk, tweets_cleaned_trump, n=100)
-
-    for i, (tweet_, tweet__) in enumerate(zip(generated_tweets, generated_tweets_transferred)):
-        print(i)
-        print(tweet_)
-        print(tweet__)
 
     save_data(generated_tweets, path_results + "/generated_tweets.txt")
     save_data(generated_tweets_transferred, path_results + "/generated_tweets_transferred.txt")
     save_data(history, path_results + "/history.txt")
-
-    #initial_tweet = random.choice(tweets_musk)
-
-
-    #new_tweet_musk = generate_tweet("do something")
-
-
-    # Generate a new tweet based on the style-transferred tweet in Trump's style
-    #new_tweet_trump = generate_tweet(style_transferred_tweet)
-
-    # Print the results
-    #print("Initial Tweet (Elon Musk):", initial_tweet)
-    #print("Generated Tweet (Musk's Style):", new_tweet_musk)
-    #print("Style-Transferred Tweet (Trump's Style):", style_transferred_tweet)
-    #print("Generated Tweet (Trump's Style):", new_tweet_trump)
 
 
 
