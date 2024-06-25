@@ -231,17 +231,22 @@ def main():
         generate_text(gen_file_path=filename)
         insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
 
-    # model 1
-    filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1038.txt"
-    eval_task1(filename_eval)
 
-    # model 2
-    filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1028.txt"
-    eval_task1(filename_eval)
+    # set to True to evaluate text, adapt file names below
+    evaluate = True
 
-    # model 3
-    filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1034.txt"
-    eval_task1(filename_eval)
+    if evaluate:
+        # model 1
+        filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1038.txt"
+        eval_task1(filename_eval)
+
+        # model 2
+        filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1028.txt"
+        eval_task1(filename_eval)
+
+        # model 3
+        filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1034.txt"
+        eval_task1(filename_eval)
 
 
 if __name__ == '__main__':

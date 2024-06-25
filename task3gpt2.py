@@ -333,6 +333,7 @@ def generate_tweet(prompt, sampled_word, model, tokenizer, name):
 
     return generated_tweet
 
+
 def style_transfer(prompt, sampled_word, model, tokenizer, name):
     device = torch.device("cuda")
 
@@ -440,28 +441,33 @@ def task3(text1, text2, n=5):
 
     return generated_tweets, generated_tweets_transferred, history
 
+
 def main():
 
-    preprocessing()
+    # set to True to generate new text, see generate text for model parameters
+    generate = False
 
-    tweets_cleaned_musk = text_file_to_dataframe(path_processed_data_musk, 'tweets')
-    tweets_cleaned_trump = text_file_to_dataframe(path_processed_data_trump, 'tweets')
+    if generate:
+        preprocessing()
 
-    fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=2)
-    fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=2)
+        tweets_cleaned_musk = text_file_to_dataframe(path_processed_data_musk, 'tweets')
+        tweets_cleaned_trump = text_file_to_dataframe(path_processed_data_trump, 'tweets')
 
-    model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)
-    tokenizer1 = GPT2Tokenizer.from_pretrained(token_musk_path)
+        fine_tune(tweets_cleaned_musk, output_musk_path, model_musk_path, token_musk_path, epochs=2)
+        fine_tune(tweets_cleaned_trump, output_trump_path, model_trump_path, token_trump_path, epochs=2)
 
-    model2 = GPT2LMHeadModel.from_pretrained(model_trump_path)
-    tokenizer2 = GPT2Tokenizer.from_pretrained(token_trump_path)
+        model1 = GPT2LMHeadModel.from_pretrained(model_musk_path)
+        tokenizer1 = GPT2Tokenizer.from_pretrained(token_musk_path)
+
+        model2 = GPT2LMHeadModel.from_pretrained(model_trump_path)
+        tokenizer2 = GPT2Tokenizer.from_pretrained(token_trump_path)
 
 
-    generated_tweets, generated_tweets_transferred, history = task3(tweets_cleaned_musk, tweets_cleaned_trump, n=100)
+        generated_tweets, generated_tweets_transferred, history = task3(tweets_cleaned_musk, tweets_cleaned_trump, n=100)
 
-    save_data(generated_tweets, path_results + "/generated_tweets.txt")
-    save_data(generated_tweets_transferred, path_results + "/generated_tweets_transferred.txt")
-    save_data(history, path_results + "/history.txt")
+        save_data(generated_tweets, path_results + "/generated_tweets.txt")
+        save_data(generated_tweets_transferred, path_results + "/generated_tweets_transferred.txt")
+        save_data(history, path_results + "/history.txt")
 
 
 

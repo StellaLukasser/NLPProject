@@ -126,30 +126,35 @@ def generate_text(seed_text, next_words, model, max_sequence_len, tokenizer, tem
 
 
 def main():
-    text_data1 = read_file(file1_kogler)
-    processed_text1 = pre_processing(text_data1)
-    model1, max_sequence_len1, tokenizer1 = lstm_model(" ".join(processed_text1))
 
-    seed_text1 = "kogler:"
-    next_words1 = 150
-    temperature1 = 1.0
-    generated_text1 = generate_text(seed_text1, next_words1, model1, max_sequence_len1, tokenizer1, temperature1)
-    save_text(generated_text1, "lstm_kogler_temp1.0_100epochs")
-    save_model(model1, "kogler_lstm_100epochs_temp1.0.keras")
-    #print(generated_text1)
+    # set to True to generate new text, see generate text for model parameters
+    generate = False
 
-    # Process second text
-    text_data2 = read_file(file2_kickl)
-    processed_text2 = pre_processing(text_data2)
-    model2, max_sequence_len2, tokenizer2 = lstm_model(" ".join(processed_text2))
+    if generate:
+        text_data1 = read_file(file1_kogler)
+        processed_text1 = pre_processing(text_data1)
+        model1, max_sequence_len1, tokenizer1 = lstm_model(" ".join(processed_text1))
 
-    seed_text2 = "kickl:"
-    next_words2 = 150
-    temperature2 = 1.0
-    generated_text2 = generate_text(seed_text2, next_words2, model2, max_sequence_len2, tokenizer2, temperature2)
-    save_text(generated_text2, "lstm_kickl_temp1.0_100epochs")
-    save_model(model2, "kickl_lstm_100epochs_temp1.0.keras")
-    #print(generated_text2)
+        seed_text1 = "kogler:"
+        next_words1 = 150
+        temperature1 = 1.0
+        generated_text1 = generate_text(seed_text1, next_words1, model1, max_sequence_len1, tokenizer1, temperature1)
+        save_text(generated_text1, "lstm_kogler_temp1.0_100epochs")
+        save_model(model1, "kogler_lstm_100epochs_temp1.0.keras")
+        #print(generated_text1)
+
+        # Process second text
+        text_data2 = read_file(file2_kickl)
+        processed_text2 = pre_processing(text_data2)
+        model2, max_sequence_len2, tokenizer2 = lstm_model(" ".join(processed_text2))
+
+        seed_text2 = "kickl:"
+        next_words2 = 150
+        temperature2 = 1.0
+        generated_text2 = generate_text(seed_text2, next_words2, model2, max_sequence_len2, tokenizer2, temperature2)
+        save_text(generated_text2, "lstm_kickl_temp1.0_100epochs")
+        save_model(model2, "kickl_lstm_100epochs_temp1.0.keras")
+        #print(generated_text2)
 
 if __name__ == '__main__':
     main()

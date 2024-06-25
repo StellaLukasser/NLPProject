@@ -65,6 +65,7 @@ def clean_tweet_trump(tweet):
     # print()
     return tweet
 
+
 def preprocessing():
     df_musk = pd.read_excel('data/data_stage_3/data_stage3_1_musk.xlsx', header=None, engine='openpyxl')
     tweets_musk = df_musk.iloc[:, 0]
@@ -110,15 +111,11 @@ def preprocessing():
     tweets_cleaned_musk.to_csv('tweets_cleaned_musk.csv', index=False, encoding='utf-8')
     print('yeah')
     #return tweets_cleaned_musk, tweets_cleaned_trump
-    
-
 
 
 def generating_text_trump():
 
     print("-")
-
-
 
 
 def main():
@@ -127,8 +124,6 @@ def main():
     #preprocessing()
     generating_text_trump()
     print('d')
-
-
 
 
 if __name__ == '__main__':

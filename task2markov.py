@@ -130,30 +130,36 @@ def generate_text_markov_adv(markov_chain_n, seed, num_words):
     return ' '.join(generated_text)
 
 def main():
-    # Example usage
-    kogler_text = read_file(file1_kogler)
-    kickl_text = read_file(file2_kickl)
 
-    kogler_words = pre_processing(kogler_text)
-    kickl_words = pre_processing(kickl_text)
 
-    #n = 1  # Order of the Markov model
-    num_words = 150
+    # set to True to generate new text, see generate text for model parameters
+    generate = False
 
-    adv_kogler = build_markov_chain_adv(kogler_words, 20)
-    adv_kickl = build_markov_chain_adv(kickl_words, 20)
+    if generate:
+        # Example usage
+        kogler_text = read_file(file1_kogler)
+        kickl_text = read_file(file2_kickl)
 
-    generated_text_kogler = generate_text_markov_adv(adv_kogler, tuple(kogler_words[:1]), 150)
-    generated_text_kickl = generate_text_markov_adv(adv_kickl, tuple(kickl_words[:1]), 150)
+        kogler_words = pre_processing(kogler_text)
+        kickl_words = pre_processing(kickl_text)
 
-    print("Kogler Text:")
-    print(generated_text_kogler)
+        #n = 1  # Order of the Markov model
+        num_words = 150
 
-    print("Kickl Text:")
-    print(generated_text_kickl)
+        adv_kogler = build_markov_chain_adv(kogler_words, 20)
+        adv_kickl = build_markov_chain_adv(kickl_words, 20)
 
-    save_text(generated_text_kogler, "markov_adv_kogler_maxseq20")
-    save_text(generated_text_kickl, "markov_adv_kickl_maxseq20")
+        generated_text_kogler = generate_text_markov_adv(adv_kogler, tuple(kogler_words[:1]), 150)
+        generated_text_kickl = generate_text_markov_adv(adv_kickl, tuple(kickl_words[:1]), 150)
+
+        print("Kogler Text:")
+        print(generated_text_kogler)
+
+        print("Kickl Text:")
+        print(generated_text_kickl)
+
+        save_text(generated_text_kogler, "markov_adv_kogler_maxseq20")
+        save_text(generated_text_kickl, "markov_adv_kickl_maxseq20")
 
 if __name__ == '__main__':
     main()

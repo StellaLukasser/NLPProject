@@ -384,8 +384,18 @@ def evaluation():
     print(f"Trump BERTScore: {bert_score_(tweets_cleaned_trump, trump_gen_rouge_bert)}")
 
 def main():
-    #generation()
-    evaluation()
+
+    # set to True to generate new text, see generate text for model parameters
+    generate = False
+
+    if generate:
+        generation()
+
+    # set to True to evaluate text, adapt file names below
+    evaluate = True
+
+    if evaluate:
+        evaluation()
     
 
 
