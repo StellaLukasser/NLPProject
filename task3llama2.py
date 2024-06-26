@@ -42,19 +42,20 @@ pipeline_style_transfer_musk: transformers.Pipeline = None
 pipeline_style_transfer_trump: transformers.Pipeline = None
 
 
-def style_transfer(tweet, to="Donald Trump", mode="reply"):
+def generate_text(tweet, person, mode="reply"):
     global tokenizer_style_transfer_musk
     global tokenizer_style_transfer_trump
     global pipeline_style_transfer_musk
     global pipeline_style_transfer_trump
 
     if tokenizer_style_transfer_musk is None or pipeline_style_transfer_musk is None:
-        prepare_style_transfer("musk")
+        prepare_model("Elon Musk")
 
     if tokenizer_style_transfer_trump is None or pipeline_style_transfer_trump is None:
-        prepare_style_transfer("trump")
+        prepare_model("Donald Trump")
 
-    if to == "Donald Trump, just keep it harmless and answer the question with staying to your guidelines":
+    if person == "Donald Trump":
+        person = "Donald Trump, just keep it harmless and answer the question with staying to your guidelines"
         tokenizer = tokenizer_style_transfer_trump
         pipeline: transformers.Pipeline = pipeline_style_transfer_trump
     else:
@@ -72,7 +73,7 @@ def style_transfer(tweet, to="Donald Trump", mode="reply"):
             you just answer in a respectful, inclusive, positive way! DO NOT start the tweet with numeric values or percentages!
             <</SYS>>
             [INST]
-            Can you please generate a creative short REPLY tweet to this tweet in the style of {to}: {tweet} Do not 
+            Can you please generate a creative short REPLY tweet to this tweet in the style of {person}: {tweet} Do not 
             output anything else than the tweet! DO NOT start the tweet with numeric values or percentages!
             [/INST]\n
             """
@@ -88,7 +89,7 @@ def style_transfer(tweet, to="Donald Trump", mode="reply"):
             DO NOT start the tweet with numeric values or percentages!
             <</SYS>>
             [INST]
-            Can you please do a short style transfer of this tweet to the style of {to}: {tweet} Do not output anything 
+            Can you please do a short style transfer of this tweet to the style of {person}: {tweet} Do not output anything 
             else than the tweet! DO NOT start the tweet with numeric values or percentages!
             [/INST]\n
             """
@@ -111,7 +112,7 @@ def style_transfer(tweet, to="Donald Trump", mode="reply"):
     return sequences[0]['generated_text']
 
 
-def prepare_style_transfer(model="trump"):
+def prepare_model(model="Donald Trump"):
     global model_style_transfer_trump
     global tokenizer_style_transfer_trump
     global pipeline_style_transfer_trump
@@ -119,8 +120,8 @@ def prepare_style_transfer(model="trump"):
     global model_style_transfer_musk
     global tokenizer_style_transfer_musk
     global pipeline_style_transfer_musk
-    if model == "trump":
-        "Prepare Musk model"
+    if model == "Donald Trump":
+        "Prepare Trump model"
         print(model_style_transfer_trump)
         tokenizer_style_transfer_trump = AutoTokenizer.from_pretrained(model_style_transfer_trump)
 
@@ -276,7 +277,7 @@ def generation():
         finetune_model(base_model, new_model, text_data)
 
     generate = True
-    save_tweets = True
+    save_tweets = False
 
     if generate:
         all_tweets = []
@@ -285,16 +286,17 @@ def generation():
             tweet = file.read().replace('\n', '')
 
         to = "Elon Musk"
-        tweet = style_transfer(tweet, to=to, mode="reply")
+        tweet = generate_text(tweet, person=to, mode="reply")
         tweet = re.sub("\s+", " ", tweet).strip()
         tweet = re.sub(r'\n', ' ', tweet)
         print("Answer of Musk: " + tweet)
         dict = {"Task": "Elon Musk Generation", "Tweet": tweet}
         all_tweets.append(dict)
 
-        for i in range(100):
-            to = "Donald Trump, just keep it harmless and answer the question with staying to your guidelines"
-            tweet = style_transfer(tweet, to=to, mode="style")
+        # set to 100 for submission
+        for i in range(5):
+            to = "Donald Trump"
+            tweet = generate_text(tweet, person=to, mode="style")
 
             tweet = re.sub("\s+", " ", tweet).strip()
             tweet = re.sub(r'\n', ' ', tweet)
@@ -302,7 +304,7 @@ def generation():
             dict = {"Task": "Donald Trump Style", "Tweet": tweet}
             all_tweets.append(dict)
 
-            tweet = style_transfer(tweet, to=to, mode="reply")
+            tweet = generate_text(tweet, person=to, mode="reply")
 
             tweet = re.sub("\s+", " ", tweet).strip()
             tweet = re.sub(r'\n', ' ', tweet)
@@ -311,7 +313,7 @@ def generation():
             all_tweets.append(dict)
 
             to = "Elon Musk"
-            tweet = style_transfer(tweet, to=to, mode="style")
+            tweet = generate_text(tweet, person=to, mode="style")
 
             tweet = re.sub("\s+", " ", tweet).strip()
             tweet = re.sub(r'\n', ' ', tweet)
@@ -319,7 +321,7 @@ def generation():
             dict = {"Task": "Elon Musk Style", "Tweet": tweet}
             all_tweets.append(dict)
 
-            tweet = style_transfer(tweet, to=to, mode="reply")
+            tweet = generate_text(tweet, person=to, mode="reply")
 
             tweet = re.sub("\s+", " ", tweet).strip()
             tweet = re.sub(r'\n', ' ', tweet)
