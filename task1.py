@@ -122,8 +122,6 @@ def insert_punctuations(gen_file_path, gen_file_path_with_punc):
                 last = i
     mean = np.array(nums).mean()
     std = np.array(nums).std()
-    print(mean)
-    print(std)
 
     # insert random punctuations
     generated_text = read_file(gen_file_path)
@@ -142,7 +140,6 @@ def insert_punctuations(gen_file_path, gen_file_path_with_punc):
     if gen[len(gen) - 1] != ".":
         gen[len(gen) - 1] += "."
     generated_text = ' '.join(gen)
-    print(generated_text)
     filename = gen_file_path_with_punc
     with open(filename, "w", encoding="UTF8") as f:
         f.write(generated_text)
@@ -191,6 +188,7 @@ def generate_text(gen_file_path):
         model = tf.keras.Sequential([
             tf.keras.layers.Embedding(vocab_size, 50, input_length=sequence_length),
             tf.keras.layers.SimpleRNN(128),
+            tf.keras.Dropout(0.2),
             tf.keras.layers.Dense(vocab_size, activation="softmax")
         ])
         epochs = 100
@@ -216,35 +214,45 @@ def generate_text(gen_file_path):
     generated_text = ' '.join(generated_text[sequence_length + 1:])
     with open(gen_file_path, "w", encoding="UTF8") as f:
         f.write(generated_text)
-    print(generated_text)
 
 
 def main():
     create_directories()
 
-    # set if you want to generate new text (look at model parameters in generate_text function)
+    # set if you want to generate new text also set if you want to evaluate
     generate = False
+    evaluate = True
 
     if generate:
         filename = path_results + "/group24_stage1_generation" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
         filename_punc = path_results + "/group24_stage1_generation_with_punc" + datetime.now().strftime("_%m%d_%H%M") + ".txt"
         generate_text(gen_file_path=filename)
         insert_punctuations(gen_file_path=filename, gen_file_path_with_punc=filename_punc)
+        if evaluate:
+            print("Evaluation of newly generated text")
+            eval_task1(filename_punc)
 
+    # set to True to evaluate our texts
+    evaluate_our_models = True
 
-    # set to True to evaluate text, adapt file names below
-    evaluate = True
-
-    if evaluate:
+    if evaluate_our_models:
         # model 1
+        print("Evaluation of generated text from model1:")
         filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1038.txt"
         eval_task1(filename_eval)
 
         # model 2
+        print("Evaluation of generated text from model2:")
         filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1028.txt"
         eval_task1(filename_eval)
 
         # model 3
+        print("Evaluation of generated text from model3:")
+        filename_eval = path_results + "/task1/test_system_08_05_model2/group24_stage1_generation.txt"
+        eval_task1(filename_eval)
+
+        # test system
+        print("Evaluation of generated text we pushed to test system:")
         filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1034.txt"
         eval_task1(filename_eval)
 
