@@ -222,7 +222,7 @@ def main():
     text_kogler = pre_processing(text_kogler)
     text_kickl = pre_processing(text_kickl)
 
-    # set to True to generate new text, see generate text for model parameters
+    # set to True to generate new text, see generate text for model parameters and also set if you want to evaluate
     generate = False
     evaluate = True
 
