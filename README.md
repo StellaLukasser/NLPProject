@@ -1,6 +1,7 @@
 # NLP Project
 
-All data, results, models for the tasks can be found in the respective folders. 
+All data, results, models(task1&2) for the tasks can be found in the respective folders. 
+The models for task 3 are too large to be uploaded. If you run the files they should be downloaded automatically, if needed.
 The directory testfiles includes all unused scripts in the final version.
  
 The **model scripts** themselves **include** the **boolean parameters** "generate" and only in the main scripts "evaluate" or
