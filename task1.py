@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 from progress.bar import Bar
 from keras.src.preprocessing.text import Tokenizer
@@ -91,6 +92,8 @@ def eval_task1(gen_file):
 
 
     reference = [i.split(" ") for i in reference.split("\n")]
+
+    generated_text = re.sub(r'[^a-zA-Z. ]', '', generated_text).lower()
 
     generated_text = generated_text.replace(",", "")
     generated_text = generated_text.replace(". ", "\n")
@@ -254,6 +257,11 @@ def main():
         # test system (model 3)
         print("Evaluation of generated text we pushed to test system:")
         filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1034.txt"
+        eval_task1(filename_eval)
+
+        # random generation
+        print("Evaluation of randomly generated text:")
+        filename_eval = "random_baseline_texts/task1_random_baseline_text.txt"
         eval_task1(filename_eval)
 
 

@@ -6,6 +6,8 @@ import numpy as np
 rouge = evaluate.load('rouge')
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 model = BertModel.from_pretrained("bert-base-uncased")
+tokenizer_german = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
+model_german = BertModel.from_pretrained("bert-base-multilingual-cased")
 
 def bleu_score_(ref, gen, weights):
     '''
@@ -60,7 +62,7 @@ def rouge_score_(ref, gen):
     return result_dict
 
 
-def bert_score_(ref, gen):
+def bert_score_(ref, gen, lang="en"):
     '''
     calculate bert score using cosine of embeddings
     Args:
@@ -70,11 +72,20 @@ def bert_score_(ref, gen):
     Returns:
        similarity score (cosine sim of the embeddings)
     '''
-    ref_tokenized = [tokenizer(ref_sentence, return_tensors="pt", padding=True, truncation=True) for ref_sentence in ref]
-    gen_tokenized = [tokenizer(gen_sentence, return_tensors="pt", padding=True, truncation=True) for gen_sentence in gen]
+    if lang == "en":
+        ref_tokenized = [tokenizer(ref_sentence, return_tensors="pt", padding=True, truncation=True) for ref_sentence in ref]
+        gen_tokenized = [tokenizer(gen_sentence, return_tensors="pt", padding=True, truncation=True) for gen_sentence in gen]
 
-    outputsref = [model(**ref_tokenized_sentence) for ref_tokenized_sentence in ref_tokenized]
-    outputsgen = [model(**gen_tokenized_sentence) for gen_tokenized_sentence in gen_tokenized]
+        outputsref = [model(**ref_tokenized_sentence) for ref_tokenized_sentence in ref_tokenized]
+        outputsgen = [model(**gen_tokenized_sentence) for gen_tokenized_sentence in gen_tokenized]
+    elif lang == "de":
+        ref_tokenized = [tokenizer_german(ref_sentence, return_tensors="pt", padding=True, truncation=True) for ref_sentence in
+                         ref]
+        gen_tokenized = [tokenizer_german(gen_sentence, return_tensors="pt", padding=True, truncation=True) for gen_sentence in
+                         gen]
+
+        outputsref = [model_german(**ref_tokenized_sentence) for ref_tokenized_sentence in ref_tokenized]
+        outputsgen = [model_german(**gen_tokenized_sentence) for gen_tokenized_sentence in gen_tokenized]
 
     embeddingsref = [outputref.last_hidden_state.mean(dim=1).detach().numpy() for outputref in outputsref]
     embeddingsgen = [outputgen.last_hidden_state.mean(dim=1).detach().numpy() for outputgen in outputsgen]

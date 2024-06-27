@@ -179,6 +179,9 @@ def prep_file_eval(text_kogler, text_kickl, generated_text_kogler, generated_tex
     text_kogler = [i.split(" ") for i in text_kogler.split("\n")]
     text_kickl = [i.split(" ") for i in text_kickl.split("\n")]
 
+    generated_text_kogler = re.sub(r'[^a-zA-ZüÜöÖäÄß. ]', '', generated_text_kogler).lower()
+    generated_text_kickl = re.sub(r'[^a-zA-ZüÜöÖäÄß. ]', '', generated_text_kickl).lower()
+
     generated_text_kogler = generated_text_kogler.replace(",", "")
     generated_text_kickl = generated_text_kickl.replace(",", "")
     punctuations = ['!', '.', ';', '?']
@@ -209,8 +212,8 @@ def eval_task2(text_kogler, text_kickl, generated_text_kogler, generated_text_ki
     print(f"Kogler ROUGE score: {rouge_score_(text_kogler, generated_text_kogler)}")
     print(f"Kickl ROUGE score: {rouge_score_(text_kickl, generated_text_kickl)}")
 
-    print(f"Kickl BERTScore: {bert_score_(text_kickl, generated_text_kickl)}")
-    print(f"Kickl BERTScore: {bert_score_(text_kogler, generated_text_kogler)}")
+    print(f"Kogler BERTScore: {bert_score_(text_kogler, generated_text_kogler, lang='de')}")
+    print(f"Kickl BERTScore: {bert_score_(text_kickl, generated_text_kickl, lang='de')}")
 
 
 def main():
@@ -275,6 +278,15 @@ def main():
         print("Evaluation of text we pushed to test system")
         generated_text_kogler = read_file(os.curdir + "/results/task2/testsystem_1805/group24_stage2_generation1.txt")
         generated_text_kickl = read_file(os.curdir + "/results/task2/testsystem_1805/group24_stage2_generation2.txt")
+        text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
+                                                                                            generated_text_kogler,
+                                                                                            generated_text_kickl)
+        eval_task2(text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval)
+
+        # randomly generated text
+        print("Evaluation of text we randomly generated")
+        generated_text_kogler = read_file("random_baseline_texts/task2_random_baseline_text_kogler.txt")
+        generated_text_kickl = read_file("random_baseline_texts/task2_random_baseline_text_kickl.txt")
         text_kogler_eval, text_kickl_eval, gen_kogler_eval, gen_kickl_eval = prep_file_eval(text_kogler, text_kickl,
                                                                                             generated_text_kogler,
                                                                                             generated_text_kickl)
