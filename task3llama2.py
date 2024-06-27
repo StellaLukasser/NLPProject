@@ -10,9 +10,8 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
 )
-# uncomment before running evaluation
-# from peft import LoraConfig
-# from trl import SFTTrainer, SFTConfig
+from peft import LoraConfig
+from trl import SFTTrainer, SFTConfig
 
 import nltk
 nltk.download('punkt')
