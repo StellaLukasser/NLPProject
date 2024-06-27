@@ -334,6 +334,10 @@ def generation():
             df.to_csv('results/task3/llama2_tweets.csv', index=False)
 
 
+def prepare_eval():
+    pass
+
+
 def evaluation():
     #reference 
     with open("processed_data/task3/tweets_cleaned_musk.txt", "r") as file:
@@ -341,17 +345,21 @@ def evaluation():
 
     with open("processed_data/task3/tweets_cleaned_trump.txt", "r") as file:
         tweets_cleaned_trump = file.read().replace('\n', ' ')
-    #for rouge and bert
-    tweets_cleaned_musk = tokenize.sent_tokenize(tweets_cleaned_musk)
-    tweets_cleaned_trump = tokenize.sent_tokenize(tweets_cleaned_trump)
-    #for bleu
-    musk_ref = []
-    trump_ref = []
-    for i in tweets_cleaned_musk:
-        musk_ref.append(i.split())
-    for i in tweets_cleaned_trump:
-        trump_ref.append(i.split())
 
+    tweets_musk_ref = tokenize.sent_tokenize(tweets_cleaned_musk)
+    tweets_trump_ref = tokenize.sent_tokenize(tweets_cleaned_trump)
+
+    #remove everything that is not a letter for bleu and rouge
+    musk_ref_lettersonly = [re.sub(r'[^a-zA-Z\s]', '', tweet).lower() for tweet in tweets_musk_ref]
+    trump_ref_lettersonly = [re.sub(r'[^a-zA-Z\s]', '', tweet).lower() for tweet in tweets_trump_ref]
+
+    #for bleu
+    musk_ref_lettersonly_list = []
+    trump_ref_lettersonly_list = []
+    for i in musk_ref_lettersonly:
+        musk_ref_lettersonly_list.append(i.split())
+    for i in trump_ref_lettersonly:
+        trump_ref_lettersonly_list.append(i.split())
 
     #generated
     df = pd.read_csv('results/task3/llama2_tweets.csv')
@@ -360,30 +368,49 @@ def evaluation():
 
     musk_gen = musk_gen["Tweet"].tolist()
     trump_gen = trump_gen["Tweet"].tolist()
+
+    #get all sentences of musk_gen into a list
+    tweets_musk_gen = tokenize.sent_tokenize(' '.join(musk_gen))
+    tweets_trump_gen = tokenize.sent_tokenize(' '.join(trump_gen))
+
+    #remove everything that is not a letter for bleu and rouge
+    musk_gen_lettersonly = [re.sub(r'[^a-zA-Z\s]', '', tweet).lower() for tweet in tweets_musk_gen]
+    trump_gen_lettersonly = [re.sub(r'[^a-zA-Z\s]', '', tweet).lower() for tweet in tweets_trump_gen]
+
     #for bleu
-    musk_gen = [word_tokenize (sent) for sent in musk_gen]
-    trump_gen = [word_tokenize (sent) for sent in trump_gen]
+    musk_gen_lettersonly_list = []
+    trump_gen_lettersonly_list = []
+    for i in musk_gen_lettersonly:
+        musk_gen_lettersonly_list.append(i.split())
+    for i in trump_gen_lettersonly:
+        trump_gen_lettersonly_list.append(i.split())
 
-    musk_gen_rouge_bert = []
-    trump_gen_rouge_bert = []
-    for i in musk_gen:
-        musk_gen_rouge_bert.append(' '.join(i))
-    for i in trump_gen:
-        trump_gen_rouge_bert.append(' '.join(i))
+    print(f"Musk bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(musk_ref_lettersonly_list, musk_gen_lettersonly_list, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Musk bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(musk_ref_lettersonly_list, musk_gen_lettersonly_list, (0.5, 0.5, 0, 0))}")
+    print(f"Musk bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(musk_ref_lettersonly_list, musk_gen_lettersonly_list, (0.5, 0.25, 0.25, 0))}")
 
-    print(f"Musk bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(musk_ref, musk_gen, (0.25, 0.25, 0.25, 0.25))}")
-    print(f"Musk bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(musk_ref, musk_gen, (0.5, 0.5, 0, 0))}")
-    print(f"Musk bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(musk_ref, musk_gen, (0.5, 0.25, 0.25, 0))}")
+    print(f"Trump bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(trump_ref_lettersonly_list, trump_gen_lettersonly_list, (0.25, 0.25, 0.25, 0.25))}")
+    print(f"Trump bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(trump_ref_lettersonly_list, trump_gen_lettersonly_list, (0.5, 0.5, 0, 0))}")
+    print(f"Trump bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(trump_ref_lettersonly_list, trump_gen_lettersonly_list, (0.5, 0.25, 0.25, 0))}")
 
-    print(f"Trump bleu score (0.25, 0.25, 0.25, 0.25): {bleu_score_(trump_ref, trump_gen, (0.25, 0.25, 0.25, 0.25))}")
-    print(f"Trump bleu score (0.50, 0.50, 0.00, 0.00): {bleu_score_(trump_ref, trump_gen, (0.5, 0.5, 0, 0))}")
-    print(f"Trump bleu score (0.50, 0.25, 0.25, 0.00): {bleu_score_(trump_ref, trump_gen, (0.5, 0.25, 0.25, 0))}")
+    print(f"Musk ROUGE score: {rouge_score_(musk_ref_lettersonly, musk_gen_lettersonly)}")
+    print(f"Trump ROUGE score: {rouge_score_(trump_ref_lettersonly, trump_gen_lettersonly)}")
 
-    print(f"Musk ROUGE score: {rouge_score_(tweets_cleaned_musk, musk_gen_rouge_bert)}")
-    print(f"Trump ROUGE score: {rouge_score_(tweets_cleaned_trump, trump_gen_rouge_bert)}")
 
-    print(f"Musk BERTScore: {bert_score_(tweets_cleaned_musk, musk_gen_rouge_bert)}")
-    print(f"Trump BERTScore: {bert_score_(tweets_cleaned_trump, trump_gen_rouge_bert)}")
+    #split into chunks due to memory resources
+    bert_musk = 0
+    for i in range(0, len(tweets_musk_ref), 1000):
+        bert_musk += bert_score_(tweets_musk_ref[i:(i+1000)], tweets_musk_gen) * 1000
+    bert_musk += bert_score_(tweets_musk_ref[i:], tweets_musk_gen) * (len(tweets_musk_ref) % 1000)
+    bert_musk /= (len(tweets_musk_ref))
+    print(f"Musk BERTScore: {bert_musk}")
+
+    bert_trump = 0
+    for i in range(0, len(tweets_trump_ref), 1000):
+        bert_trump += bert_score_(tweets_trump_ref[i:(i+1000)], tweets_trump_gen) * 1000
+    bert_trump += bert_score_(tweets_trump_ref[i:], tweets_trump_gen) * (len(tweets_trump_ref) % 1000)
+    bert_trump /= (len(tweets_trump_ref))
+    print(f"Trump BERTScore: {bert_trump}")
 
 def main():
 
