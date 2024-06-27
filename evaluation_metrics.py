@@ -30,8 +30,9 @@ def bleu_score_(ref, gen, weights):
     # for sentence in gen:
     #     bleu_scores.append(sentence_bleu(ref, sentence, weights=weights, smoothing_function=cc.method4))
     # return np.array(bleu_scores).mean()
+    bleu = corpus_bleu([ref]*len(gen), gen, weights=weights, smoothing_function=cc.method4)
 
-    return corpus_bleu([ref]*len(gen), gen, weights=weights, smoothing_function=cc.method4)
+    return round(bleu, 4)
 
 
 def rouge_score_(ref, gen):

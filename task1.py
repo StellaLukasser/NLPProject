@@ -249,14 +249,9 @@ def main():
         filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1028.txt"
         eval_task1(filename_eval)
 
-        # model 3
-        print("Evaluation of generated text from model3:")
-        filename_eval = path_results + "/task1/test_system_08_05_model2/group24_stage1_generation.txt"
-        eval_task1(filename_eval)
-
         # test system (model 3)
         print("Evaluation of generated text we pushed to test system:")
-        filename_eval = path_results + "/group24_stage1_generation_with_punc_0612_1034.txt"
+        filename_eval = path_results + "/test_system_08_05_model2/group24_stage1_generation.txt"
         eval_task1(filename_eval)
 
         # random generation

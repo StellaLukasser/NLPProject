@@ -32,8 +32,8 @@ path_models = os.curdir + "/models/task3/"
 path_processed_data = os.curdir + "/processed_data/task3"
 
 
-model_style_transfer_musk = path_models + "llama-2-7b-chat-finetuned-musk-new-nonum"  #"meta-llama/Llama-2-13b-chat-hf" # change to 7b or 13b according to your resources
-model_style_transfer_trump = path_models + "llama-2-7b-chat-finetuned-trump-new-nonum" #"meta-llama/Llama-2-13b-chat-hf" # change to 7b or 13b according to your resources
+model_style_transfer_musk = path_models + "llama-2-7b-chat-finetuned-musk-new-nonum"
+model_style_transfer_trump = path_models + "llama-2-7b-chat-finetuned-trump-new-nonum"
 
 tokenizer_style_transfer_musk = None
 tokenizer_style_transfer_trump = None
