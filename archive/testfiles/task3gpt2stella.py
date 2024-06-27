@@ -197,7 +197,7 @@ def discuss(text1, text2, n=5):
 
     history = ""
 
-    with open("../data/data_stage_3/initial_tweet_musk.txt", "r") as file:
+    with open("../../data/data_stage_3/initial_tweet_musk.txt", "r") as file:
         first_prompt = file.read().replace('\n', '')
 
     start_prompt = "<|startoftext|>elonmusk: " + first_prompt + "I would answer realDonaldTrump:"
